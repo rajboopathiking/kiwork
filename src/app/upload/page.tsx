@@ -57,7 +57,7 @@ export default function UploadPage() {
         <Link href="/explore" className="font-semibold text-emerald-700 hover:underline">
           empty feed
         </Link>{" "}
-        that's waiting for your first post.
+        that&apos;s waiting for your first post.
       </p>
     </div>
   );

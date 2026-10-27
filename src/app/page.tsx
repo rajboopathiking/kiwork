@@ -129,7 +129,7 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-slate-300">
             Your portfolio at <strong className="font-mono">@yourname</strong>{" "}
-            shows everything you've learned and shared — one link you can send
+            shows everything you&apos;ve learned and shared — one link you can send
             to recruiters, classmates, or friends.
           </p>
           <Link

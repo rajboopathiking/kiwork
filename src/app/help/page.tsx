@@ -17,7 +17,7 @@ export default function HelpPage() {
           study something new — a concept, a tool, a chapter — you share what
           you learned in whatever format is easiest for you. Someone studying
           the same topic finds your post and gets unstuck. When they learn the
-          next thing, they share too. That's how a helping community grows.
+          next thing, they share too. That&apos;s how a helping community grows.
         </p>
         <div className="rounded-2xl border border-slate-200 p-5">
           <h2 className="flex items-center gap-2 font-semibold text-slate-900">
@@ -25,11 +25,10 @@ export default function HelpPage() {
             Community ways
           </h2>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
-            <li>Tap <strong>"Helped me"</strong> on any post that rescued you.</li>
+            <li>Tap <strong>&quot;Helped me&quot;</strong> on any post that rescued you.</li>
             <li>Ask questions in comments — the author gets notified (soon).</li>
             <li>Follow people whose learning paths you like.</li>
-            <li>Save posts to study later.</li>
-          </ul>
+            <li>Save posts to study later.</li>          </ul>
         </div>
         <div className="rounded-2xl border border-slate-200 p-5">
           <h2 className="font-semibold text-slate-900">Formats you can post</h2>

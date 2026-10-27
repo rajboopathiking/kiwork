@@ -54,7 +54,7 @@ export default async function ExplorePage({
     }
     const { data, error } = await query;
     if (error) throw error;
-    posts = (data as PostCardData[]) ?? [];
+    posts = (data as unknown as PostCardData[]) ?? [];
   } catch {
     dbError = true;
     posts = null;

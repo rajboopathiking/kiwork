@@ -14,7 +14,12 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "@/components/brand-icons";
-import { Globe, Pencil } from "lucide-react";
+import { Bookmark, ExternalLink, Globe, LayoutGrid, Pencil } from "lucide-react";
+
+interface CustomLink {
+  key: string;
+  url: string;
+}
 
 interface ProfileFull {
   id: string;
@@ -30,6 +35,7 @@ interface ProfileFull {
     facebook?: string;
     youtube?: string;
     website?: string;
+    custom?: CustomLink[];
   } | null;
 }
 
@@ -95,10 +101,13 @@ function normalizeSocialUrl(val?: string, defaultHost?: string): string | null {
 
 export default async function PortfolioPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { username: raw } = await params;
+  const { tab = "posts" } = await searchParams;
   const username = decodeURIComponent(raw).replace(/^@/, "");
   if (!username) notFound();
 
@@ -108,12 +117,14 @@ export default async function PortfolioPage({
   if (!profile) notFound();
 
   let posts: PostCardData[] = [];
+  let savedPosts: PostCardData[] = [];
   let stats = { posts: 0, helped: 0, followers: 0 };
   let following = false;
+  const isSelf = me?.id === profile.id;
 
   try {
     const supabase = await createClient();
-    const [postsData, postsCnt, helpedC, followersC, followRow] = await Promise.all([
+    const [postsData, postsCnt, helpedC, followersC, followRow, savesData] = await Promise.all([
       supabase
         .from("posts")
         .select("id, format, title, description, media_url_2, views, created_at, author_id, files, profiles!posts_author_id_fkey(username, avatar_url)")
@@ -134,29 +145,53 @@ export default async function PortfolioPage({
         .from("follows")
         .select("*", { count: "exact", head: true })
         .eq("following_id", profile.id),
-      me
+      authorIsMe(profile.id, me?.id)
+        ? Promise.resolve(null)
+        : me
+          ? supabase
+              .from("follows")
+              .select("follower_id")
+              .eq("following_id", profile.id)
+              .eq("follower_id", me.id)
+              .maybeSingle()
+          : Promise.resolve(null),
+      isSelf
         ? supabase
-            .from("follows")
-            .select("follower_id")
-            .eq("following_id", profile.id)
-            .eq("follower_id", me.id)
-            .maybeSingle()
+            .from("saves")
+            .select("posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url))")
+            .eq("user_id", profile.id)
+            .order("created_at", { ascending: false })
         : Promise.resolve(null),
     ]);
 
-    posts = (postsData.data as unknown as PostCardData[]) ?? [];
+    posts = (postsData?.data as unknown as PostCardData[]) ?? [];
     stats = {
       posts: postsCnt?.count ?? posts.length,
       helped: helpedC?.count ?? 0,
       followers: followersC?.count ?? 0,
     };
     following = !!((followRow as unknown as { data: unknown })?.data);
+
+    if (savesData?.data) {
+      savedPosts = (savesData.data as any[])
+        .map((r) => r.posts)
+        .filter((p): p is PostCardData => Boolean(p && p.id));
+    }
   } catch {
     // Supabase query failed or env missing
   }
 
+  function authorIsMe(targetId: string, myId?: string) {
+    return Boolean(myId && targetId === myId);
+  }
+
   const links = profile.links ?? {};
-  const isSelf = me?.id === profile.id;
+  const customLinks = Array.isArray(links.custom)
+    ? links.custom.filter((c) => c && typeof c.key === "string" && typeof c.url === "string" && c.url.trim())
+    : [];
+
+  const isSavedTab = tab === "saved" && isSelf;
+  const displayedPosts = isSavedTab ? savedPosts : posts;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -178,6 +213,8 @@ export default async function PortfolioPage({
             </h1>
             <p className="font-mono text-sm text-emerald-700 dark:text-emerald-400">@{profile.username} · kiwork</p>
             {profile.bio && <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-300">{profile.bio}</p>}
+
+            {/* Social accounts & Custom links */}
             {(() => {
               const socialItems = [
                 { key: "github", href: normalizeSocialUrl(links.github, "github.com"), icon: GithubIcon, label: "GitHub", hover: "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white" },
@@ -189,7 +226,7 @@ export default async function PortfolioPage({
                 { key: "website", href: normalizeSocialUrl(links.website), icon: Globe, label: "Website", hover: "hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400" },
               ].filter((item): item is typeof item & { href: string } => Boolean(item.href));
 
-              if (socialItems.length === 0) return null;
+              if (socialItems.length === 0 && customLinks.length === 0) return null;
 
               return (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -205,6 +242,21 @@ export default async function PortfolioPage({
                       <Icon className="h-4 w-4" />
                     </a>
                   ))}
+
+                  {/* Custom portfolio and developer links */}
+                  {customLinks.map((cl, i) => (
+                    <a
+                      key={i}
+                      href={normalizeSocialUrl(cl.url) ?? cl.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-emerald-500 hover:text-emerald-700 hover:shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
+                    >
+                      <Globe className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                      <span>{cl.key}</span>
+                      <ExternalLink className="h-2.5 w-2.5 opacity-60" />
+                    </a>
+                  ))}
                 </div>
               );
             })()}
@@ -212,12 +264,35 @@ export default async function PortfolioPage({
 
           <div className="flex flex-wrap items-center gap-2">
             {isSelf ? (
-              <Link
-                href="/settings"
-                className="flex items-center gap-1.5 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-              >
-                <Pencil className="h-4 w-4" /> Edit profile
-              </Link>
+              <>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-1.5 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Pencil className="h-4 w-4" /> Edit profile
+                </Link>
+
+                {/* Saved Posts Icon / Shortcut */}
+                <Link
+                  href={`/@${profile.username}?tab=saved`}
+                  className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    isSavedTab
+                      ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
+                      : "border-slate-300 text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  }`}
+                  title="View your saved posts"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  <span>Saved</span>
+                  {savedPosts.length > 0 && (
+                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                      isSavedTab ? "bg-white text-emerald-800" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                    }`}>
+                      {savedPosts.length}
+                    </span>
+                  )}
+                </Link>
+              </>
             ) : (
               <FollowButton
                 targetId={profile.id}
@@ -242,33 +317,75 @@ export default async function PortfolioPage({
         </div>
       </div>
 
-      {/* posts */}
-      <h2 className="mt-10 text-lg font-semibold text-slate-900 dark:text-white">
-        What {isSelf ? "you" : "they"} learned & shared
-      </h2>
-      {posts.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {isSelf
-              ? "Nothing shared yet — your first post becomes portfolio evidence."
-              : "This learner hasn't shared publicly yet."}
-          </p>
-          {isSelf && (
-            <Link
-              href="/upload"
-              className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-            >
-              Share what you learned
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} />
-          ))}
-        </div>
-      )}
+      {/* Tabs navigation for published vs saved */}
+      <div className="mt-8 flex items-center gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+        <Link
+          href={`/@${profile.username}`}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            !isSavedTab
+              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs"
+              : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+          }`}
+        >
+          <LayoutGrid className="h-4 w-4" />
+          <span>Published ({posts.length})</span>
+        </Link>
+
+        {isSelf && (
+          <Link
+            href={`/@${profile.username}?tab=saved`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              isSavedTab
+                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <Bookmark className="h-4 w-4 text-emerald-500" />
+            <span>Saved Posts ({savedPosts.length})</span>
+          </Link>
+        )}
+      </div>
+
+      {/* Posts Section */}
+      <div className="mt-4">
+        {displayedPosts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {isSavedTab
+                ? "You haven't saved any posts yet. Click the bookmark icon on any post in Explore to save it here."
+                : isSelf
+                  ? "Nothing shared yet — your first post becomes portfolio evidence."
+                  : "This learner hasn't shared publicly yet."}
+            </p>
+            {isSelf && !isSavedTab && (
+              <Link
+                href="/upload"
+                className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Share what you learned
+              </Link>
+            )}
+            {isSavedTab && (
+              <Link
+                href="/explore"
+                className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Explore Posts to Save
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {displayedPosts.map((p) => (
+              <PostCard
+                key={p.id}
+                post={p}
+                canEdit={!isSavedTab && isSelf}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

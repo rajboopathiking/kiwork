@@ -229,6 +229,32 @@ export default async function PostPage({
         )}
       </div>
 
+      {/* Author Controls Banner */}
+      {isAuthor && (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-50/80 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-emerald-500/20 dark:bg-emerald-950/40 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+              <Pencil className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                You published this post
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Update content, attached diagrams, Google Colab notebook, GitHub repo, or post settings.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/post/${post.id}/edit`}
+            className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            <span>Edit Post</span>
+          </Link>
+        </div>
+      )}
+
       {/* header */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
@@ -298,18 +324,60 @@ export default async function PostPage({
       {/* Developer productivity & learning resources */}
       <DeveloperResources resources={devResources} postTitle={post.title} />
 
-      {/* content per format */}
-      <div>
-        {post.format === "video" && <VideoBlock url={post.media_url ?? ""} />}
-        {post.format === "audio" && <AudioBlock url={post.media_url ?? ""} />}
-        {post.format === "image" && (
-          <ImageCarousel
-            urls={images.length ? images : post.media_url ? [post.media_url] : []}
-            title={post.title}
-          />
+      {/* content per format & multi-combination support */}
+      <div className="space-y-6">
+        {post.format === "video" && (
+          <div>
+            <VideoBlock url={post.media_url ?? ""} />
+            {post.body && (
+              <div className="mt-6">
+                <BlogContent html={post.body} />
+              </div>
+            )}
+          </div>
         )}
+
+        {post.format === "audio" && (
+          <div>
+            <AudioBlock url={post.media_url ?? ""} />
+            {post.body && (
+              <div className="mt-6">
+                <BlogContent html={post.body} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {post.format === "image" && (
+          <div>
+            <ImageCarousel
+              urls={images.length ? images : post.media_url ? [post.media_url] : []}
+              title={post.title}
+            />
+            {post.body && (
+              <div className="mt-6">
+                <BlogContent html={post.body} />
+              </div>
+            )}
+          </div>
+        )}
+
         {post.format === "doc" && <DocBlock url={post.media_url ?? ""} title={post.title} />}
-        {post.format === "blog" && <BlogContent html={post.body ?? ""} />}
+
+        {post.format === "blog" && (
+          <div className="space-y-6">
+            {images.length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Attached Diagrams &amp; Screenshots ({images.length})</span>
+                </div>
+                <ImageCarousel urls={images} title={post.title} />
+              </div>
+            )}
+            <BlogContent html={post.body ?? ""} />
+          </div>
+        )}
       </div>
 
       {/* community actions */}

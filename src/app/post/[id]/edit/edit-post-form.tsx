@@ -87,6 +87,7 @@ export default function EditPostForm({
   const [description, setDescription] = useState(post.description ?? "");
   const [bodyHtml, setBodyHtml] = useState(post.body ?? "");
   const [videoUrl, setVideoUrl] = useState(post.media_url ?? "");
+  const [currentImages, setCurrentImages] = useState<string[]>(existingImages);
   const [language, setLanguage] = useState(post.language ?? "en");
   const [visibility, setVisibility] = useState(post.visibility ?? "public");
   const [selectedTopics, setSelectedTopics] = useState<string[]>(initialTopicIds);
@@ -138,19 +139,17 @@ export default function EditPostForm({
       const hasDevResources = Object.keys(devResources).length > 0;
 
       let updatedFiles: unknown = null;
-      if (existingImages.length > 0) {
-        updatedFiles = hasDevResources ? { images: existingImages, ...devResources } : existingImages;
+      if (currentImages.length > 0) {
+        updatedFiles = hasDevResources ? { images: currentImages, ...devResources } : { images: currentImages };
       } else if (hasDevResources) {
         updatedFiles = devResources;
       }
 
-      let updatedMediaUrl = post.media_url;
-      let updatedMediaUrl2 = post.media_url_2;
-      let updatedBody = post.body;
+      let updatedMediaUrl = currentImages.length > 0 ? currentImages[0] : post.media_url;
+      let updatedMediaUrl2 = currentImages.length > 0 ? currentImages[0] : post.media_url_2;
+      let updatedBody = bodyHtml.trim() || null;
 
-      if (post.format === "blog") {
-        updatedBody = bodyHtml;
-      } else if (post.format === "video") {
+      if (post.format === "video") {
         if (videoRef) {
           updatedMediaUrl = videoRef.embedUrl;
           updatedMediaUrl2 = videoRef.thumbnailUrl;
@@ -312,6 +311,34 @@ export default function EditPostForm({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Attached Images & Diagrams Management */}
+          {currentImages.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Attached Diagrams / Screenshots ({currentImages.length})
+                </span>
+                <span className="text-[11px] text-slate-400">Click &apos;x&apos; to remove an image</span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
+                {currentImages.map((imgUrl, i) => (
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setCurrentImages(currentImages.filter((_, idx) => idx !== i))}
+                      className="absolute right-1 top-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+                      title="Remove image"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

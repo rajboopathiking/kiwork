@@ -7,6 +7,7 @@ import {
   ImageIcon,
   Lock,
   MonitorPlay,
+  Pencil,
 } from "lucide-react";
 import { ColabIcon, GithubIcon } from "./brand-icons";
 
@@ -32,7 +33,13 @@ export interface PostCardData {
   profiles: { username: string; avatar_url: string | null } | null;
 }
 
-export default function PostCard({ post }: { post: PostCardData }) {
+export default function PostCard({
+  post,
+  canEdit = false,
+}: {
+  post: PostCardData;
+  canEdit?: boolean;
+}) {
   const meta = FORMAT_META[post.format] ?? FORMAT_META.blog;
   const Icon = meta.icon;
   const authorName = post.profiles?.username ?? "unknown";
@@ -64,7 +71,21 @@ export default function PostCard({ post }: { post: PostCardData }) {
   }
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
+    <article className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
+      {/* Quick Edit button for authors */}
+      {canEdit && (
+        <div className="absolute left-2 top-2 z-20">
+          <Link
+            href={`/post/${post.id}/edit`}
+            className="inline-flex items-center gap-1 rounded-full bg-slate-900/85 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md border border-white/20 shadow-xs transition hover:bg-emerald-600 hover:scale-105"
+            title="Edit this post"
+          >
+            <Pencil className="h-3 w-3" />
+            <span>Edit</span>
+          </Link>
+        </div>
+      )}
+
       <Link href={`/post/${post.id}`} className="block">
         <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 to-slate-50 dark:from-slate-800 dark:to-slate-800/40">
           {post.media_url_2 ? (

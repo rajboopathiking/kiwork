@@ -91,13 +91,15 @@ export default function UploadWizard({
 
   function acceptFiles(list: FileList | null) {
     if (!list) return;
-    const cfg = LIMITS[format!];
-    const next = Array.from(list).slice(0, cfg.maxCount);
-    const bad = next.find((f) => f.size > cfg.max);
+    const cfg = LIMITS[format === "blog" ? "image" : format!];
+    const maxCount = cfg?.maxCount ?? 8;
+    const maxSize = cfg?.max ?? 5 * 1024 * 1024;
+    const next = Array.from(list).slice(0, maxCount);
+    const bad = next.find((f) => f.size > maxSize);
     if (bad) {
-      setError(`"${bad.name}" is too large (${humanFileSize(bad.size)}). Limit: ${humanFileSize(cfg.max)}.`);
+      setError(`"${bad.name}" is too large (${humanFileSize(bad.size)}). Limit: ${humanFileSize(maxSize)}.`);
     }
-    setFiles(next.filter((f) => f.size <= cfg.max));
+    setFiles(next.filter((f) => f.size <= maxSize));
     setError(null);
   }
 
@@ -167,7 +169,22 @@ export default function UploadWizard({
         if (hasDevResources) filesJson = devResources;
       } else if (format === "blog") {
         body = bodyHtml;
-        if (hasDevResources) filesJson = devResources;
+        const uploadedImages: string[] = [];
+        if (files.length > 0) {
+          for (const f of files) {
+            const u = await uploadTo("images", f);
+            if (u) uploadedImages.push(u);
+          }
+          if (uploadedImages.length > 0) {
+            mediaUrl = uploadedImages[0];
+            mediaUrl2 = uploadedImages[0];
+          }
+        }
+        if (uploadedImages.length > 0) {
+          filesJson = hasDevResources ? { images: uploadedImages, ...devResources } : { images: uploadedImages };
+        } else if (hasDevResources) {
+          filesJson = devResources;
+        }
       } else if (format === "audio") {
         mediaUrl = await uploadTo("audios", files[0]);
         if (hasDevResources) filesJson = devResources;
@@ -316,7 +333,67 @@ export default function UploadWizard({
             </>
           )}
 
-          {format === "blog" && <RichTextEditor onChange={setBodyHtml} />}
+          {format === "blog" && (
+            <div className="space-y-4">
+              <RichTextEditor onChange={setBodyHtml} />
+
+              {/* Multi-combination: Attached Diagrams & Screenshots for Blogs */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                      <ImageIcon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
+                        Attach Architecture Diagrams &amp; Screenshots (Optional)
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Upload system flowcharts, UI screenshots, or benchmark graphs (up to 8 images)
+                      </p>
+                    </div>
+                  </div>
+                  <label
+                    htmlFor="blog-images-drop"
+                    className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>Upload Images ({files.length}/8)</span>
+                    <input
+                      id="blog-images-drop"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      multiple
+                      className="sr-only"
+                      onChange={(e) => acceptFiles(e.target.files)}
+                    />
+                  </label>
+                </div>
+
+                {files.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                    {files.map((f, i) => (
+                      <div key={f.name + i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold text-white">
+                          {i + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                          className="absolute right-1 top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+                          title="Remove image"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {format !== "video" && format !== "blog" && (
             <label

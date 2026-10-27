@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { AtSign, Globe, ImagePlus, Loader2, Save } from "lucide-react";
+import { AtSign, Globe, ImagePlus, Link2, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import {
   GithubIcon,
   LinkedinIcon,
@@ -13,6 +13,11 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "@/components/brand-icons";
+
+interface CustomLink {
+  key: string;
+  url: string;
+}
 
 interface Profile {
   id: string;
@@ -28,6 +33,7 @@ interface Profile {
     facebook?: string;
     youtube?: string;
     website?: string;
+    custom?: CustomLink[];
   } | null;
 }
 
@@ -45,10 +51,40 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
   const [facebook, setFacebook] = useState(profile.links?.facebook ?? "");
   const [youtube, setYoutube] = useState(profile.links?.youtube ?? "");
   const [website, setWebsite] = useState(profile.links?.website ?? "");
+
+  const [customLinks, setCustomLinks] = useState<CustomLink[]>(
+    Array.isArray(profile.links?.custom)
+      ? profile.links.custom.filter(
+          (c) => c && typeof c.key === "string" && typeof c.url === "string"
+        )
+      : []
+  );
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  function cleanUrlInput(val: string): string {
+    const trimmed = val.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  }
+
+  function addCustomLink() {
+    setCustomLinks((prev) => [...prev, { key: "", url: "" }]);
+  }
+
+  function updateCustomLink(idx: number, field: "key" | "url", val: string) {
+    setCustomLinks((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
+    );
+  }
+
+  function removeCustomLink(idx: number) {
+    setCustomLinks((prev) => prev.filter((_, i) => i !== idx));
+  }
 
   const input =
     "w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
@@ -77,6 +113,20 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
         avatar_url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
       }
 
+      const cleanedCustom = customLinks
+        .map((c) => ({ key: c.key.trim(), url: cleanUrlInput(c.url) }))
+        .filter((c) => c.key && c.url);
+
+      const linksPayload: Record<string, unknown> = {};
+      if (github.trim()) linksPayload.github = cleanUrlInput(github);
+      if (linkedin.trim()) linksPayload.linkedin = cleanUrlInput(linkedin);
+      if (twitter.trim()) linksPayload.twitter = cleanUrlInput(twitter);
+      if (instagram.trim()) linksPayload.instagram = cleanUrlInput(instagram);
+      if (facebook.trim()) linksPayload.facebook = cleanUrlInput(facebook);
+      if (youtube.trim()) linksPayload.youtube = cleanUrlInput(youtube);
+      if (website.trim()) linksPayload.website = cleanUrlInput(website);
+      if (cleanedCustom.length > 0) linksPayload.custom = cleanedCustom;
+
       const { error: upErr2 } = await supabase
         .from("profiles")
         .update({
@@ -84,15 +134,7 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
           full_name: fullName.trim() || null,
           bio: bio.trim() || null,
           avatar_url,
-          links: {
-            ...(github.trim() ? { github: github.trim() } : {}),
-            ...(linkedin.trim() ? { linkedin: linkedin.trim() } : {}),
-            ...(twitter.trim() ? { twitter: twitter.trim() } : {}),
-            ...(instagram.trim() ? { instagram: instagram.trim() } : {}),
-            ...(facebook.trim() ? { facebook: facebook.trim() } : {}),
-            ...(youtube.trim() ? { youtube: youtube.trim() } : {}),
-            ...(website.trim() ? { website: website.trim() } : {}),
-          },
+          links: linksPayload,
         })
         .eq("id", profile.id);
       if (upErr2) throw upErr2;
@@ -296,6 +338,62 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
             placeholder="https://yourportfolio.com"
             className={input}
           />
+        </div>
+
+        {/* Custom Key-Value Links */}
+        <div className="border-t border-slate-200/80 pt-4 dark:border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                Custom Portfolio &amp; Profile Links
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Add links to LeetCode, Hugging Face, Kaggle, Substack, Medium, or custom URLs. Only links with a valid URL will be shown to visitors.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addCustomLink}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Link
+            </button>
+          </div>
+
+          {customLinks.length > 0 && (
+            <div className="mt-3 space-y-2.5">
+              {customLinks.map((link, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="w-1/3 min-w-[120px]">
+                    <input
+                      type="text"
+                      value={link.key}
+                      onChange={(e) => updateCustomLink(idx, "key", e.target.value)}
+                      placeholder="e.g. LeetCode"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      value={link.url}
+                      onChange={(e) => updateCustomLink(idx, "url", e.target.value)}
+                      placeholder="https://leetcode.com/u/..."
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeCustomLink(idx)}
+                    title="Remove custom link"
+                    className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

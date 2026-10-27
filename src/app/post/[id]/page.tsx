@@ -9,6 +9,7 @@ import CommentSection, { type CommentData } from "@/components/comment-section";
 import FollowButton from "@/components/follow-button";
 import ShareRow from "@/components/share-row";
 import ReportButton from "@/components/report-button";
+import ImageCarousel from "@/components/image-carousel";
 import {
   ArrowLeft,
   Eye,
@@ -258,7 +259,12 @@ export default async function PostPage({
       <div>
         {post.format === "video" && <VideoBlock url={post.media_url ?? ""} />}
         {post.format === "audio" && <AudioBlock url={post.media_url ?? ""} />}
-        {post.format === "image" && <ImageGalleryBlock urls={files.length ? files : post.media_url ? [post.media_url] : []} />}
+        {post.format === "image" && (
+          <ImageCarousel
+            urls={files.length ? files : post.media_url ? [post.media_url] : []}
+            title={post.title}
+          />
+        )}
         {post.format === "doc" && <DocBlock url={post.media_url ?? ""} title={post.title} />}
         {post.format === "blog" && (
           <article
@@ -334,22 +340,6 @@ function AudioBlock({ url }: { url: string }) {
   );
 }
 
-function ImageGalleryBlock({ urls }: { urls: string[] }) {
-  if (urls.length === 0) return <Notice text="This post has no images yet." />;
-  return (
-    <div className={"grid gap-4 " + (urls.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
-      {urls.map((u, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={u}
-          src={u}
-          alt={`Image ${i + 1}`}
-          className="w-full rounded-2xl border border-slate-200 object-contain ring-1 ring-slate-100 dark:border-slate-800 dark:ring-0"
-        />
-      ))}
-    </div>
-  );
-}
 
 function DocBlock({ url, title }: { url: string; title: string }) {
   if (!url) return <Notice text="This post has no document file." />;

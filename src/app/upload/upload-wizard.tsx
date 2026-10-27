@@ -289,7 +289,31 @@ export default function UploadWizard({
             >
               <Upload className="mb-3 h-8 w-8 text-emerald-600" />
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{LIMITS[format].label}</p>
-              {files.length > 0 && (
+              {files.length > 0 && format === "image" ? (
+                <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 w-full max-w-lg">
+                  {files.map((f, i) => (
+                    <div key={f.name + i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setFiles(files.filter((_, idx) => idx !== i));
+                        }}
+                        className="absolute right-1 top-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+                        title="Remove image"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : files.length > 0 && (
                 <ul className="mt-3 w-full max-w-md space-y-1">
                   {files.map((f) => (
                     <li key={f.name} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200 dark:text-slate-300 dark:ring-slate-700">

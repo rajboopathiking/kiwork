@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   Bold,
   Italic,
@@ -11,6 +12,8 @@ import {
   Underline as UnderlineIcon,
   Undo2,
   Redo2,
+  Code,
+  FileCode,
 } from "lucide-react";
 import { EditorContent, useEditor, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -19,11 +22,14 @@ import Underline from "@tiptap/extension-underline";
 
 export default function RichTextEditor({
   onChange,
+  initialContent = "",
 }: {
   onChange: (html: string) => void;
+  initialContent?: string;
 }) {
   const editor = useEditor({
     immediatelyRender: false,
+    content: initialContent,
     extensions: [
       StarterKit.configure({
         link: false,
@@ -43,6 +49,12 @@ export default function RichTextEditor({
       onChange(editor.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (editor && initialContent && editor.isEmpty) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, initialContent]);
 
   const btn =
     "flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white";
@@ -131,6 +143,22 @@ export default function RichTextEditor({
           title="Quote"
         >
           <Quote className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleCode().run()}
+          className={editor.isActive("code") ? btnActive : btn}
+          title="Inline code"
+        >
+          <Code className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={editor.isActive("codeBlock") ? btnActive : btn}
+          title="Code block"
+        >
+          <FileCode className="h-4 w-4" />
         </button>
 
         <span className="mx-1 w-px self-stretch bg-slate-200 dark:bg-slate-700" />

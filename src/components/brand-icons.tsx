@@ -53,3 +53,16 @@ export function WhatsAppIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function ColabIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="#F9AB00"
+        d="M16.94 8.7a5.5 5.5 0 0 0-4.94 3.09 5.5 5.5 0 0 0-4.94-3.09A5.7 5.7 0 0 0 1.3 14.4a5.7 5.7 0 0 0 5.76 5.7 5.5 5.5 0 0 0 4.94-3.09 5.5 5.5 0 0 0 4.94 3.09 5.7 5.7 0 0 0 5.76-5.7 5.7 5.7 0 0 0-5.76-5.7zm-9.88 9.4A3.7 3.7 0 0 1 3.3 14.4a3.7 3.7 0 0 1 3.76-3.7 3.7 3.7 0 0 1 3.76 3.7 3.7 3.7 0 0 1-3.76 3.7zm9.88 0a3.7 3.7 0 0 1-3.76-3.7 3.7 3.7 0 0 1 3.76-3.7 3.7 3.7 0 0 1 3.76 3.7 3.7 3.7 0 0 1-3.76 3.7z"
+      />
+      <circle cx="7" cy="14.4" r="2.2" fill="#E37400" />
+      <circle cx="17" cy="14.4" r="2.2" fill="#E37400" />
+    </svg>
+  );
+}

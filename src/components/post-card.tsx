@@ -8,6 +8,7 @@ import {
   Lock,
   MonitorPlay,
 } from "lucide-react";
+import { ColabIcon, GithubIcon } from "./brand-icons";
 
 export const FORMAT_META: Record<string, { icon: typeof FileText; label: string }> = {
   blog: { icon: FileText, label: "Blog" },
@@ -27,6 +28,7 @@ export interface PostCardData {
   created_at: string;
   author_id: string;
   visibility?: string;
+  files?: unknown;
   profiles: { username: string; avatar_url: string | null } | null;
 }
 
@@ -40,6 +42,26 @@ export default function PostCard({ post }: { post: PostCardData }) {
   });
 
   const isPrivate = post.visibility === "private";
+
+  let hasColab = false;
+  let hasGithub = false;
+  let hasDemo = false;
+
+  if (post.files) {
+    let f: any = post.files;
+    if (typeof f === "string") {
+      try {
+        f = JSON.parse(f);
+      } catch {
+        f = null;
+      }
+    }
+    if (f && typeof f === "object" && !Array.isArray(f)) {
+      hasColab = Boolean(f.colab_url);
+      hasGithub = Boolean(f.github_url);
+      hasDemo = Boolean(f.demo_url);
+    }
+  }
 
   return (
     <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
@@ -83,10 +105,27 @@ export default function PostCard({ post }: { post: PostCardData }) {
         </div>
 
         <div className="p-4">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-            <Icon className="h-3 w-3" />
-            {meta.label}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+              <Icon className="h-3 w-3" />
+              {meta.label}
+            </span>
+            {hasColab && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
+                <ColabIcon className="h-3 w-3" /> Colab
+              </span>
+            )}
+            {hasGithub && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                <GithubIcon className="h-3 w-3" /> Code
+              </span>
+            )}
+            {hasDemo && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                <Globe className="h-2.5 w-2.5" /> Demo
+              </span>
+            )}
+          </div>
 
           <h3 className="mt-2 line-clamp-2 font-semibold text-slate-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
             {post.title}

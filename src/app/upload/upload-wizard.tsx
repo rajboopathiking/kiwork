@@ -8,18 +8,22 @@ import { humanFileSize } from "@/lib/media";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   FileCheck2,
   FileText,
+  Globe,
   Upload,
   Headphones,
   ImageIcon,
   Loader2,
   MonitorPlay,
+  Terminal,
   X,
 } from "lucide-react";
 import RichTextEditor from "./rich-text-editor";
 import { FORMAT_OPTIONS } from "@/lib/media";
 import { parseVideoUrl } from "@/lib/media";
+import { ColabIcon, GithubIcon } from "@/components/brand-icons";
 import type { PostFormat } from "@/lib/types";
 
 interface Topic {
@@ -59,6 +63,12 @@ export default function UploadWizard({
   const [language, setLanguage] = useState("en");
   const [visibility, setVisibility] = useState("public");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+  // developer productivity & learning resources
+  const [colabUrl, setColabUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [demoUrl, setDemoUrl] = useState("");
+  const [docsUrl, setDocsUrl] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -126,18 +136,44 @@ export default function UploadWizard({
     try {
       let mediaUrl: string | null = null;
       let mediaUrl2: string | null = null;
-      let filesJson: string[] | null = null;
+      let filesJson: unknown = null;
       let body: string | null = null;
+
+      function cleanUrl(u: string): string {
+        const trimmed = u.trim();
+        if (!trimmed) return "";
+        if (!/^https?:\/\//i.test(trimmed)) {
+          return `https://${trimmed}`;
+        }
+        return trimmed;
+      }
+
+      const colabClean = cleanUrl(colabUrl);
+      const githubClean = cleanUrl(githubUrl);
+      const demoClean = cleanUrl(demoUrl);
+      const docsClean = cleanUrl(docsUrl);
+
+      const devResources: Record<string, string> = {};
+      if (colabClean) devResources.colab_url = colabClean;
+      if (githubClean) devResources.github_url = githubClean;
+      if (demoClean) devResources.demo_url = demoClean;
+      if (docsClean) devResources.docs_url = docsClean;
+
+      const hasDevResources = Object.keys(devResources).length > 0;
 
       if (format === "video" && videoRef) {
         mediaUrl = videoRef.embedUrl;
         mediaUrl2 = videoRef.thumbnailUrl;
+        if (hasDevResources) filesJson = devResources;
       } else if (format === "blog") {
         body = bodyHtml;
+        if (hasDevResources) filesJson = devResources;
       } else if (format === "audio") {
         mediaUrl = await uploadTo("audios", files[0]);
+        if (hasDevResources) filesJson = devResources;
       } else if (format === "doc") {
         mediaUrl = await uploadTo("docs", files[0]);
+        if (hasDevResources) filesJson = devResources;
       } else if (format === "image") {
         const urls: string[] = [];
         for (const f of files) {
@@ -145,9 +181,9 @@ export default function UploadWizard({
           if (u) urls.push(u);
         }
         if (urls.length === 0) throw new Error("Image upload failed.");
-        filesJson = urls;
         mediaUrl = urls[0];
         mediaUrl2 = urls[0];
+        filesJson = hasDevResources ? { images: urls, ...devResources } : urls;
       }
 
       const { data: post, error: insErr } = await supabase
@@ -431,6 +467,85 @@ export default function UploadWizard({
                 <option value="public">Public — community can see</option>
                 <option value="private">Private — only me</option>
               </select>
+            </div>
+          </div>
+
+          {/* Developer & Learning Resources */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                <Terminal className="h-3.5 w-3.5" />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Developer & Learning Resources (Optional)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Attach interactive Google Colab notebooks, GitHub code, or live demos
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {/* Google Colab */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <ColabIcon className="h-4 w-4" />
+                  Google Colab Notebook URL
+                </label>
+                <input
+                  type="url"
+                  value={colabUrl}
+                  onChange={(e) => setColabUrl(e.target.value)}
+                  placeholder="https://colab.research.google.com/drive/..."
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              {/* GitHub Repo */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <GithubIcon className="h-4 w-4 text-slate-900 dark:text-white" />
+                  GitHub Repository URL
+                </label>
+                <input
+                  type="url"
+                  value={githubUrl}
+                  onChange={(e) => setGithubUrl(e.target.value)}
+                  placeholder="https://github.com/username/repository"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              {/* Live Demo */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Live Demo / App URL
+                </label>
+                <input
+                  type="url"
+                  value={demoUrl}
+                  onChange={(e) => setDemoUrl(e.target.value)}
+                  placeholder="https://my-app.vercel.app or deployed project"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+              </div>
+
+              {/* Docs / Research Paper */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <BookOpen className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                  Docs / Research Paper URL
+                </label>
+                <input
+                  type="url"
+                  value={docsUrl}
+                  onChange={(e) => setDocsUrl(e.target.value)}
+                  placeholder="https://arxiv.org/abs/... or documentation"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                />
+              </div>
             </div>
           </div>
 

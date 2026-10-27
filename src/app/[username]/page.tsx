@@ -116,7 +116,7 @@ export default async function PortfolioPage({
     const [postsData, postsCnt, helpedC, followersC, followRow] = await Promise.all([
       supabase
         .from("posts")
-        .select("id, format, title, description, media_url_2, views, created_at, author_id, profiles!posts_author_id_fkey(username, avatar_url)")
+        .select("id, format, title, description, media_url_2, views, created_at, author_id, files, profiles!posts_author_id_fkey(username, avatar_url)")
         .eq("visibility", "public")
         .eq("author_id", profile.id)
         .order("created_at", { ascending: false })

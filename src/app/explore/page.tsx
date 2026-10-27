@@ -27,7 +27,7 @@ export default async function ExplorePage({
     let query = supabase
       .from("posts")
       .select(
-        "id, format, title, description, media_url_2, views, created_at, author_id, visibility, profiles!posts_author_id_fkey(username, avatar_url)"
+        "id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)"
       )
       .eq("visibility", "public")
       .order("created_at", { ascending: false })

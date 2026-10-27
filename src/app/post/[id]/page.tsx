@@ -10,6 +10,8 @@ import FollowButton from "@/components/follow-button";
 import ShareRow from "@/components/share-row";
 import ReportButton from "@/components/report-button";
 import ImageCarousel from "@/components/image-carousel";
+import BlogContent from "@/components/blog-content";
+import DeveloperResources, { type DeveloperResourcesData } from "@/components/developer-resources";
 import {
   ArrowLeft,
   Eye,
@@ -20,6 +22,7 @@ import {
   ImageIcon,
   Lock,
   MonitorPlay,
+  Pencil,
 } from "lucide-react";
 
 interface PostFull {
@@ -30,7 +33,7 @@ interface PostFull {
   body: string | null;
   media_url: string | null;
   media_url_2: string | null;
-  files: string[] | string | null;
+  files: unknown;
   language: string;
   visibility: string;
   views: number;
@@ -38,6 +41,40 @@ interface PostFull {
   author_id: string;
   profiles: { id: string; username: string; full_name: string | null; avatar_url: string | null } | null;
   post_topics: { topics: { id: string; name: string; slug: string }[] } | null;
+}
+
+function parsePostFiles(raw: unknown): { images: string[]; devResources: DeveloperResourcesData } {
+  let parsed: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return {
+      images: parsed.filter((item): item is string => typeof item === "string"),
+      devResources: {},
+    };
+  }
+
+  if (parsed && typeof parsed === "object") {
+    const record = parsed as Record<string, unknown>;
+    const images = Array.isArray(record.images)
+      ? record.images.filter((item): item is string => typeof item === "string")
+      : [];
+    const devResources: DeveloperResourcesData = {
+      colab_url: typeof record.colab_url === "string" && record.colab_url.trim() ? record.colab_url.trim() : undefined,
+      github_url: typeof record.github_url === "string" && record.github_url.trim() ? record.github_url.trim() : undefined,
+      demo_url: typeof record.demo_url === "string" && record.demo_url.trim() ? record.demo_url.trim() : undefined,
+      docs_url: typeof record.docs_url === "string" && record.docs_url.trim() ? record.docs_url.trim() : undefined,
+    };
+    return { images, devResources };
+  }
+
+  return { images: [], devResources: {} };
 }
 
 async function fetchPost(id: string): Promise<PostFull | null> {
@@ -126,18 +163,7 @@ export default async function PostPage({
   });
   const author = post.profiles;
   const topics = post.post_topics?.topics ?? [];
-  const files: string[] = Array.isArray(post.files)
-    ? post.files
-    : typeof post.files === "string"
-      ? (() => {
-          try {
-            const parsed = JSON.parse(post.files);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [];
-          }
-        })()
-      : [];
+  const { images, devResources } = parsePostFiles(post.files);
 
   // engagement state (server-computed, client toggles the rest)
   let engagement = { likes: 0, helpedCount: 0, liked: false, helped: false, saved: false };
@@ -179,15 +205,29 @@ export default async function PostPage({
     // keep zeros — page content still renders
   }
 
+  const isAuthor = me?.id === post.author_id;
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
-      {/* breadcrumb */}
-      <Link
-        href="/explore"
-        className="mb-5 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-700"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to explore
-      </Link>
+      {/* breadcrumb & edit action */}
+      <div className="mb-5 flex items-center justify-between">
+        <Link
+          href="/explore"
+          className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to explore
+        </Link>
+
+        {isAuthor && (
+          <Link
+            href={`/post/${post.id}/edit`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs transition hover:border-emerald-400 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-950/60 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            <span>Edit post</span>
+          </Link>
+        )}
+      </div>
 
       {/* header */}
       <div className="flex flex-wrap items-center gap-2">
@@ -255,23 +295,21 @@ export default async function PostPage({
 
       <hr className="my-6 border-slate-200" />
 
+      {/* Developer productivity & learning resources */}
+      <DeveloperResources resources={devResources} postTitle={post.title} />
+
       {/* content per format */}
       <div>
         {post.format === "video" && <VideoBlock url={post.media_url ?? ""} />}
         {post.format === "audio" && <AudioBlock url={post.media_url ?? ""} />}
         {post.format === "image" && (
           <ImageCarousel
-            urls={files.length ? files : post.media_url ? [post.media_url] : []}
+            urls={images.length ? images : post.media_url ? [post.media_url] : []}
             title={post.title}
           />
         )}
         {post.format === "doc" && <DocBlock url={post.media_url ?? ""} title={post.title} />}
-        {post.format === "blog" && (
-          <article
-            className="prose prose-slate prose-headings:font-semibold prose-a:text-emerald-700 max-w-none dark:prose-invert dark:prose-a:text-emerald-400"
-            dangerouslySetInnerHTML={{ __html: post.body ?? "" }}
-          />
-        )}
+        {post.format === "blog" && <BlogContent html={post.body ?? ""} />}
       </div>
 
       {/* community actions */}
@@ -281,14 +319,23 @@ export default async function PostPage({
       </div>
 
       <div className="mt-4 flex items-center justify-between">
-        <ReportButton postId={post.id} postTitle={post.title} signedIn={!!me} />
+        {isAuthor ? (
+          <Link
+            href={`/post/${post.id}/edit`}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit this post
+          </Link>
+        ) : (
+          <ReportButton postId={post.id} postTitle={post.title} signedIn={!!me} />
+        )}
         {author && (
           <FollowButton
             targetId={author.id}
             initialFollowing={followingAuthor}
             initialFollowers={followers}
             signedIn={!!me}
-            self={me?.id === author.id}
+            self={isAuthor}
           />
         )}
       </div>

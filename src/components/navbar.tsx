@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, LogIn, Lightbulb, PlusCircle, Search, Bookmark } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import ThemeToggle from "@/components/theme-toggle";
+import UserMenu from "@/components/user-menu";
 
 export default async function Navbar() {
   const { user, profile } = await getCurrentUser();
@@ -60,36 +61,12 @@ export default async function Navbar() {
               </Link>
               <Link
                 href="/upload"
-                className="hidden items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:flex"
+                className="hidden items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:flex"
               >
                 <PlusCircle className="h-4 w-4" />
-                Share
+                <span>Share</span>
               </Link>
-              <Link
-                href={`/@${profile.username}`}
-                className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-emerald-700 dark:text-slate-200"
-              >
-                {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.avatar_url}
-                    alt=""
-                    className="h-7 w-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                  />
-                ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                    {(profile.full_name ?? profile.username).charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </Link>
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                >
-                  Log out
-                </button>
-              </form>
+              <UserMenu profile={profile} />
             </>
           ) : (
             <>

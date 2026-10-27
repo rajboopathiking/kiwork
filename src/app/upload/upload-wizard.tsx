@@ -13,6 +13,7 @@ import {
   Upload,
   Headphones,
   ImageIcon,
+  Loader2,
   MonitorPlay,
   X,
 } from "lucide-react";
@@ -219,7 +220,7 @@ export default function UploadWizard({
               <button
                 key={f}
                 onClick={() => pickFormat(f)}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
+                className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                   <Icon className="h-5 w-5" />
@@ -315,7 +316,7 @@ export default function UploadWizard({
             <button
               disabled={!canContinue}
               onClick={() => setStep(3)}
-              className="flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+              className="flex cursor-pointer items-center gap-2 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
             >
               Continue <ArrowRight className="h-4 w-4" />
             </button>
@@ -414,19 +415,19 @@ export default function UploadWizard({
           <div className="flex items-center justify-between pt-2">
             <button
               onClick={() => setStep(2)}
-              className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:text-slate-400 dark:hover:text-white"
+              className="flex cursor-pointer items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
             <button
               onClick={publish}
               disabled={publishing || !title.trim()}
-              className="flex items-center gap-2 rounded-full bg-emerald-600 px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+              className="flex cursor-pointer items-center gap-2 rounded-full bg-emerald-600 px-7 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
             >
               {publishing ? (
                 <>
-                  <Upload className="h-4 w-4 animate-pulse" />
-                  Publishing…
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Publishing…</span>
                 </>
               ) : (
                 "Publish post"

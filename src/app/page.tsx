@@ -44,16 +44,16 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-20 text-center sm:pt-24">
+      <section className="mx-auto max-w-6xl px-4 pb-12 pt-12 text-center sm:pb-16 sm:pt-24">
         <p className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
           <Lightbulb className="h-3.5 w-3.5" />
           A free, friendly community for self-learners
         </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
-          Learn it. <span className="text-emerald-600">Share it.</span> Help
+        <h1 className="mx-auto max-w-3xl text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
+          Learn it. <span className="text-emerald-600 dark:text-emerald-400">Share it.</span> Help
           others learn it.
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
+        <p className="mx-auto mt-4 max-w-2xl text-base sm:text-lg text-slate-600 dark:text-slate-300">
           When you study something new, post what you learned — as{" "}
           <strong>video, audio, notes, slides or a blog</strong>. Someone out
           there is studying the same thing and needs exactly what you just
@@ -62,14 +62,14 @@ export default function Home() {
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/signup"
-            className="flex items-center gap-2 rounded-full bg-emerald-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:w-auto"
           >
             <UserPlus className="h-4 w-4" />
             Start sharing — free
           </Link>
           <Link
             href="/explore"
-            className="flex items-center gap-2 rounded-full border border-slate-300 px-7 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-300 px-7 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900 sm:w-auto"
           >
             Browse posts
             <ArrowRight className="h-4 w-4" />

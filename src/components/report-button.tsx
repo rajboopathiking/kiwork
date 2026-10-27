@@ -69,7 +69,7 @@ export default function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-400 transition hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400"
+        className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-400 transition hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400"
         title="Report this post"
       >
         <Flag className="h-3.5 w-3.5" />

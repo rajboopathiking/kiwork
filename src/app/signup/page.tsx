@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Lightbulb, Mail, KeyRound, User, AtSign } from "lucide-react";
+import { Lightbulb, Mail, KeyRound, User, AtSign, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +23,7 @@ export default function SignupPage() {
 
     const uname = username.trim().toLowerCase();
     if (!/^[a-z0-9_]{3,20}$/.test(uname)) {
-      setError("Username: 3–20 chars, only lowercase letters, numbers, _");
+      setError("Username must be 3–20 characters using lowercase letters, numbers, or _");
       return;
     }
     if (password.length < 8) {
@@ -33,22 +34,26 @@ export default function SignupPage() {
     setLoading(true);
     try {
       const supabase = createClient();
+      const origin =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://kiwork-gzn7.vercel.app";
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
           data: { username: uname, full_name: fullName.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${origin}/auth/callback`,
         },
       });
       if (error) throw error;
 
       if (data.session) {
-        // email auth confirmed in dev → logged in right away
+        // Logged in immediately
         router.push("/explore");
         router.refresh();
       } else {
-        // fallback (confirmation enabled in prod): account created, go log in
         router.push("/login?created=1");
         router.refresh();
       }
@@ -60,77 +65,112 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-14">
-      <div className="mb-8 text-center">
-        <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
+    <div className="mx-auto flex w-full max-w-md flex-col px-4 py-8 sm:py-14">
+      <div className="mb-6 text-center sm:mb-8">
+        <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
           <Lightbulb className="h-5 w-5" />
         </span>
-        <h1 className="text-2xl font-bold text-slate-900">Join KIWORK</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Free forever for learners. No credit card.
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl dark:text-white">
+          Join KIWORK
+        </h1>
+        <p className="mt-1.5 text-xs text-slate-500 sm:text-sm dark:text-slate-400">
+          Free forever for learners. Share what you study.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
         <form onSubmit={handleSignUp} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="relative">
-              <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                required
-                placeholder="Full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              />
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Full name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  placeholder="Boopathi"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:bg-slate-900"
+                />
+              </div>
             </div>
-            <div className="relative">
-              <AtSign className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                required
-                placeholder="username (boopathi_raj)"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.replace(/\s+/g, "_"))}
-                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              />
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                Username
+              </label>
+              <div className="relative">
+                <AtSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  placeholder="boopathi_raj"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/\s+/g, "_"))}
+                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 font-mono text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:bg-slate-900"
+                />
+              </div>
             </div>
           </div>
-          <p className="-mt-2 text-xs text-slate-400 dark:text-slate-500">
-            Your portfolio will live at <strong>/{`@${username || "yourname"}`}</strong>
+          <p className="-mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Portfolio link: <span className="font-mono text-emerald-600 dark:text-emerald-400">/@{username || "yourname"}</span>
           </p>
 
-          <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              id="su-email"
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              Email address
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="su-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:bg-slate-900"
+              />
+            </div>
           </div>
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-            <input
-              id="su-password"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              placeholder="Password (min 8 chars)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            />
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              Password
+            </label>
+            <div className="relative">
+              <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="su-password"
+                type={showPassword ? "text" : "password"}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-10 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:bg-slate-900"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-950 px-3 py-2 text-sm text-red-400">
+            <p className="rounded-xl bg-rose-50 p-3 text-xs font-medium text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
               {error}
             </p>
           )}
@@ -138,21 +178,26 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
           >
-            {loading ? "Creating account…" : "Create free account"}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating account…</span>
+              </>
+            ) : (
+              <span>Create free account</span>
+            )}
           </button>
         </form>
-
-        <p className="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
-          Google sign-in and magic link also work — after signup you can use
-          them from the login page.
-        </p>
       </div>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-xs text-slate-500 sm:text-sm dark:text-slate-400">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-emerald-700 hover:underline">
+        <Link
+          href="/login"
+          className="font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+        >
           Log in
         </Link>
       </p>

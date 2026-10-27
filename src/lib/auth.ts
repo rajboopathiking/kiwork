@@ -6,7 +6,15 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  links: { github?: string; linkedin?: string; website?: string } | null;
+  links: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+    youtube?: string;
+    website?: string;
+  } | null;
 }
 
 export interface PostCardData {

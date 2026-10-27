@@ -14,8 +14,10 @@ import {
   Eye,
   FileCheck2,
   FileText,
+  Globe,
   Headphones,
   ImageIcon,
+  Lock,
   MonitorPlay,
 } from "lucide-react";
 
@@ -228,6 +230,22 @@ export default async function PostPage({
         <span className="flex items-center gap-1">
           <Eye className="h-3.5 w-3.5" />
           {post.views + 1} learners reached
+        </span>
+        <span
+          className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-600 dark:border-slate-700 dark:text-slate-300"
+          title={post.visibility === "private" ? "Private post (only author can see)" : "Public post (shared with community)"}
+        >
+          {post.visibility === "private" ? (
+            <>
+              <Lock className="h-3 w-3 text-amber-500" />
+              <span className="text-amber-600 dark:text-amber-400">Private</span>
+            </>
+          ) : (
+            <>
+              <Globe className="h-3 w-3 text-emerald-500" />
+              <span>Public</span>
+            </>
+          )}
         </span>
         {post.language !== "en" && (
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase dark:bg-slate-800 dark:text-slate-300">{post.language}</span>

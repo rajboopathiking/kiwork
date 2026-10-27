@@ -6,7 +6,14 @@ import { getCurrentUser } from "@/lib/auth";
 import PostCard, { type PostCardData } from "@/components/post-card";
 import FollowButton from "@/components/follow-button";
 import ShareRow from "@/components/share-row";
-import { GithubIcon, LinkedinIcon } from "@/components/brand-icons";
+import {
+  GithubIcon,
+  LinkedinIcon,
+  InstagramIcon,
+  FacebookIcon,
+  TwitterIcon,
+  YoutubeIcon,
+} from "@/components/brand-icons";
 import { Globe, Pencil } from "lucide-react";
 
 interface ProfileFull {
@@ -15,7 +22,15 @@ interface ProfileFull {
   full_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  links: { github?: string; linkedin?: string; website?: string } | null;
+  links: {
+    github?: string;
+    linkedin?: string;
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+    youtube?: string;
+    website?: string;
+  } | null;
 }
 
 async function fetchProfile(username: string): Promise<ProfileFull | null> {
@@ -149,20 +164,40 @@ export default async function PortfolioPage({
             </h1>
             <p className="font-mono text-sm text-emerald-700 dark:text-emerald-400">@{profile.username} · kiwork</p>
             {profile.bio && <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-300">{profile.bio}</p>}
-            <div className="mt-2 flex gap-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2.5">
               {links.github && (
-                <a href={links.github} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="GitHub">
-                  <GithubIcon className="h-5 w-5" />
+                <a href={links.github} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" title="GitHub">
+                  <GithubIcon className="h-4 w-4" />
                 </a>
               )}
               {links.linkedin && (
-                <a href={links.linkedin} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="LinkedIn">
-                  <LinkedinIcon className="h-5 w-5" />
+                <a href={links.linkedin} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-sky-50 hover:text-sky-600 dark:text-slate-400 dark:hover:bg-sky-950/50 dark:hover:text-sky-400" title="LinkedIn">
+                  <LinkedinIcon className="h-4 w-4" />
+                </a>
+              )}
+              {links.instagram && (
+                <a href={links.instagram} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-pink-50 hover:text-pink-600 dark:text-slate-400 dark:hover:bg-pink-950/50 dark:hover:text-pink-400" title="Instagram">
+                  <InstagramIcon className="h-4 w-4" />
+                </a>
+              )}
+              {links.facebook && (
+                <a href={links.facebook} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950/50 dark:hover:text-blue-400" title="Facebook">
+                  <FacebookIcon className="h-4 w-4" />
+                </a>
+              )}
+              {links.twitter && (
+                <a href={links.twitter} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" title="X / Twitter">
+                  <TwitterIcon className="h-4 w-4" />
+                </a>
+              )}
+              {links.youtube && (
+                <a href={links.youtube} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400" title="YouTube">
+                  <YoutubeIcon className="h-4 w-4" />
                 </a>
               )}
               {links.website && (
-                <a href={links.website} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="Website">
-                  <Globe className="h-5 w-5" />
+                <a href={links.website} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400" title="Website / Portfolio">
+                  <Globe className="h-4 w-4" />
                 </a>
               )}
             </div>

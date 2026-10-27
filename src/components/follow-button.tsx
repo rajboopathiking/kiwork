@@ -64,7 +64,7 @@ export default function FollowButton({
       disabled={busy}
       className={
         className ??
-        "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition disabled:opacity-50 " +
+        "flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition disabled:opacity-50 " +
           (following
             ? "border border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
             : "bg-emerald-600 text-white hover:bg-emerald-700")

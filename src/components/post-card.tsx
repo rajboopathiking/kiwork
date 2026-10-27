@@ -53,6 +53,8 @@ export default function PostCard({
   let hasColab = false;
   let hasGithub = false;
   let hasDemo = false;
+  let hasImages = false;
+  let hasExtraVideo = false;
 
   if (post.files) {
     let f: any = post.files;
@@ -63,10 +65,14 @@ export default function PostCard({
         f = null;
       }
     }
-    if (f && typeof f === "object" && !Array.isArray(f)) {
+    if (Array.isArray(f)) {
+      hasImages = f.length > 0;
+    } else if (f && typeof f === "object") {
       hasColab = Boolean(f.colab_url);
       hasGithub = Boolean(f.github_url);
       hasDemo = Boolean(f.demo_url);
+      hasExtraVideo = Boolean(f.video_url);
+      hasImages = Array.isArray(f.images) && f.images.length > 0;
     }
   }
 
@@ -144,6 +150,16 @@ export default function PostCard({
             {hasDemo && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                 <Globe className="h-2.5 w-2.5" /> Demo
+              </span>
+            )}
+            {post.format !== "image" && hasImages && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <ImageIcon className="h-2.5 w-2.5" /> +Diagrams
+              </span>
+            )}
+            {post.format !== "video" && hasExtraVideo && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <MonitorPlay className="h-2.5 w-2.5" /> +Video
               </span>
             )}
           </div>

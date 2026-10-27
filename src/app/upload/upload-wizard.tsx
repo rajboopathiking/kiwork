@@ -56,6 +56,9 @@ export default function UploadWizard({
   const [videoUrl, setVideoUrl] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
   const [files, setFiles] = useState<File[]>([]);
+  const [showWriteup, setShowWriteup] = useState(true);
+  const [showImages, setShowImages] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
   // details inputs
   const [title, setTitle] = useState("");
@@ -85,13 +88,16 @@ export default function UploadWizard({
     setFiles([]);
     setVideoUrl("");
     setBodyHtml("");
+    setShowWriteup(f === "blog" || f === "video" || f === "image");
+    setShowImages(f === "image" || f === "blog");
+    setShowVideo(f === "video");
     setError(null);
     setStep(2);
   }
 
   function acceptFiles(list: FileList | null) {
     if (!list) return;
-    const cfg = LIMITS[format === "blog" ? "image" : format!];
+    const cfg = LIMITS[format === "audio" ? "audio" : format === "doc" ? "doc" : "image"];
     const maxCount = cfg?.maxCount ?? 8;
     const maxSize = cfg?.max ?? 5 * 1024 * 1024;
     const next = Array.from(list).slice(0, maxCount);
@@ -99,21 +105,22 @@ export default function UploadWizard({
     if (bad) {
       setError(`"${bad.name}" is too large (${humanFileSize(bad.size)}). Limit: ${humanFileSize(maxSize)}.`);
     }
-    setFiles(next.filter((f) => f.size <= maxSize));
+    setFiles((prev) => {
+      const combined = [...prev, ...next.filter((f) => f.size <= maxSize)];
+      return combined.slice(0, maxCount);
+    });
     setError(null);
   }
 
-  const videoRef = format === "video" ? parseVideoUrl(videoUrl) : null;
+  const videoRef = parseVideoUrl(videoUrl);
   const canContinue =
     step === 2 &&
     format != null &&
-    (format === "video"
-      ? !!videoRef
-      : format === "blog"
-        ? bodyHtml.trim().length > 20
-        : format === "image"
-          ? files.length > 0
-          : files.length === 1);
+    (bodyHtml.trim().length > 10 ||
+      files.length > 0 ||
+      videoRef != null ||
+      (format === "audio" && files.length > 0) ||
+      (format === "doc" && files.length > 0));
 
   async function uploadTo(bucket: string, file: File): Promise<string | null> {
     if (!uid) return null;
@@ -138,8 +145,8 @@ export default function UploadWizard({
     try {
       let mediaUrl: string | null = null;
       let mediaUrl2: string | null = null;
-      let filesJson: unknown = null;
-      let body: string | null = null;
+      const filesJson: Record<string, unknown> = {};
+      const body: string | null = bodyHtml.trim() || null;
 
       function cleanUrl(u: string): string {
         const trimmed = u.trim();
@@ -155,52 +162,50 @@ export default function UploadWizard({
       const demoClean = cleanUrl(demoUrl);
       const docsClean = cleanUrl(docsUrl);
 
-      const devResources: Record<string, string> = {};
-      if (colabClean) devResources.colab_url = colabClean;
-      if (githubClean) devResources.github_url = githubClean;
-      if (demoClean) devResources.demo_url = demoClean;
-      if (docsClean) devResources.docs_url = docsClean;
+      // Dev Resources
+      if (colabClean) filesJson.colab_url = colabClean;
+      if (githubClean) filesJson.github_url = githubClean;
+      if (demoClean) filesJson.demo_url = demoClean;
+      if (docsClean) filesJson.docs_url = docsClean;
 
-      const hasDevResources = Object.keys(devResources).length > 0;
-
-      if (format === "video" && videoRef) {
-        mediaUrl = videoRef.embedUrl;
-        mediaUrl2 = videoRef.thumbnailUrl;
-        if (hasDevResources) filesJson = devResources;
-      } else if (format === "blog") {
-        body = bodyHtml;
-        const uploadedImages: string[] = [];
-        if (files.length > 0) {
-          for (const f of files) {
-            const u = await uploadTo("images", f);
-            if (u) uploadedImages.push(u);
-          }
-          if (uploadedImages.length > 0) {
-            mediaUrl = uploadedImages[0];
-            mediaUrl2 = uploadedImages[0];
-          }
-        }
-        if (uploadedImages.length > 0) {
-          filesJson = hasDevResources ? { images: uploadedImages, ...devResources } : { images: uploadedImages };
-        } else if (hasDevResources) {
-          filesJson = devResources;
-        }
-      } else if (format === "audio") {
-        mediaUrl = await uploadTo("audios", files[0]);
-        if (hasDevResources) filesJson = devResources;
-      } else if (format === "doc") {
-        mediaUrl = await uploadTo("docs", files[0]);
-        if (hasDevResources) filesJson = devResources;
-      } else if (format === "image") {
-        const urls: string[] = [];
+      // Upload Images
+      const uploadedImages: string[] = [];
+      if (format !== "audio" && format !== "doc" && files.length > 0) {
         for (const f of files) {
           const u = await uploadTo("images", f);
-          if (u) urls.push(u);
+          if (u) uploadedImages.push(u);
         }
-        if (urls.length === 0) throw new Error("Image upload failed.");
-        mediaUrl = urls[0];
-        mediaUrl2 = urls[0];
-        filesJson = hasDevResources ? { images: urls, ...devResources } : urls;
+        if (uploadedImages.length > 0) {
+          filesJson.images = uploadedImages;
+        }
+      }
+
+      // Video metadata
+      if (videoRef) {
+        filesJson.video_url = videoRef.embedUrl;
+        filesJson.video_thumbnail = videoRef.thumbnailUrl;
+      }
+
+      // Audio / Doc uploads
+      if (format === "audio" && files.length > 0) {
+        mediaUrl = await uploadTo("audios", files[0]);
+      } else if (format === "doc" && files.length > 0) {
+        mediaUrl = await uploadTo("docs", files[0]);
+      } else if (format === "video" && videoRef) {
+        mediaUrl = videoRef.embedUrl;
+        mediaUrl2 = videoRef.thumbnailUrl;
+      } else if (format === "image" && uploadedImages.length > 0) {
+        mediaUrl = uploadedImages[0];
+        mediaUrl2 = uploadedImages[0];
+      }
+
+      // Fallback preview thumbnails for feed cards
+      if (!mediaUrl && uploadedImages.length > 0) {
+        mediaUrl = uploadedImages[0];
+        mediaUrl2 = uploadedImages[0];
+      } else if (!mediaUrl && videoRef) {
+        mediaUrl = videoRef.embedUrl;
+        mediaUrl2 = videoRef.thumbnailUrl;
       }
 
       const { data: post, error: insErr } = await supabase
@@ -213,7 +218,7 @@ export default function UploadWizard({
           body,
           media_url: mediaUrl,
           media_url_2: mediaUrl2,
-          files: filesJson ?? null,
+          files: Object.keys(filesJson).length > 0 ? filesJson : null,
           language,
           visibility,
         })
@@ -290,77 +295,147 @@ export default function UploadWizard({
 
       {/* STEP 2 — content */}
       {step === 2 && format && (
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900 dark:text-white">
-              {FORMAT_OPTIONS.find((o) => o.format === format)?.label}
-            </h2>
-            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:text-slate-400 dark:hover:text-white">
-              <ArrowLeft className="h-4 w-4" /> Change format
+            <div>
+              <h2 className="font-bold text-slate-900 sm:text-lg dark:text-white">
+                Compose Content: {FORMAT_OPTIONS.find((o) => o.format === format)?.label}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                You can freely combine video walkthroughs, diagram carousels, and rich text articles.
+              </p>
+            </div>
+            <button
+              onClick={() => setStep(1)}
+              className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Change format
             </button>
           </div>
 
-          {format === "video" && (
-            <>
+          {/* Multi-combination Section Selector (for video, blog, image) */}
+          {(format === "video" || format === "blog" || format === "image") && (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 dark:border-slate-800 dark:bg-slate-900/50">
+              <span className="px-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                Combine Media:
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowVideo((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  showVideo
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                <MonitorPlay className="h-3.5 w-3.5" />
+                <span>Video Walkthrough {videoRef ? "✓" : ""}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowImages((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  showImages
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span>Diagrams &amp; Images {files.length > 0 ? `(${files.length})` : ""}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowWriteup((prev) => !prev)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  showWriteup
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Article &amp; Code {bodyHtml.trim().length > 10 ? "✓" : ""}</span>
+              </button>
+            </div>
+          )}
+
+          {/* 1. Video Input Block */}
+          {showVideo && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-2 flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <MonitorPlay className="h-4 w-4 text-emerald-600" />
+                  <span>Video Walkthrough (YouTube / Vimeo)</span>
+                </label>
+                {format !== "video" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVideo(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    Hide
+                  </button>
+                )}
+              </div>
               <input
                 type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
+                placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
               />
               {videoUrl && !videoRef && (
-                <p className="text-sm text-red-600">
-                  That doesn&apos;t look like a YouTube or Vimeo link. Try the standard watch/share URL.
+                <p className="mt-1.5 text-xs text-rose-500">
+                  Enter a valid YouTube or Vimeo watch/share link.
                 </p>
               )}
               {videoRef && (
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/60">
                   {videoRef.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={videoRef.thumbnailUrl} alt="" className="h-48 w-full object-cover" />
                   ) : (
-                    <div className="flex h-48 items-center justify-center bg-slate-900 text-sm text-slate-300">
-                      Vimeo video — preview plays on the post page
+                    <div className="flex h-36 items-center justify-center bg-slate-900 text-xs text-slate-300">
+                      Vimeo video detected — embedded playback active on post page
                     </div>
                   )}
-                  <p className="flex items-center gap-2 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-                    <MonitorPlay className="h-3.5 w-3.5 text-emerald-600" />
-                    {videoRef.provider === "youtube" ? "YouTube" : "Vimeo"} · id {videoRef.id}
+                  <p className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <MonitorPlay className="h-3.5 w-3.5" />
+                    Recognized {videoRef.provider === "youtube" ? "YouTube" : "Vimeo"} video (id: {videoRef.id})
                   </p>
                 </div>
               )}
-            </>
+            </div>
           )}
 
-          {format === "blog" && (
-            <div className="space-y-4">
-              <RichTextEditor onChange={setBodyHtml} />
-
-              {/* Multi-combination: Attached Diagrams & Screenshots for Blogs */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/40">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                      <ImageIcon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <h3 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
-                        Attach Architecture Diagrams &amp; Screenshots (Optional)
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Upload system flowcharts, UI screenshots, or benchmark graphs (up to 8 images)
-                      </p>
-                    </div>
+          {/* 2. Images & Architecture Diagrams Block */}
+          {showImages && (format === "video" || format === "blog" || format === "image") && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    <ImageIcon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                      Architecture Diagrams &amp; Screenshots
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Upload system charts, flowcharts, or UI screenshots (up to 8 images)
+                    </p>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <label
-                    htmlFor="blog-images-drop"
+                    htmlFor="diagrams-upload-input"
                     className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
                   >
                     <Upload className="h-3.5 w-3.5" />
                     <span>Upload Images ({files.length}/8)</span>
                     <input
-                      id="blog-images-drop"
+                      id="diagrams-upload-input"
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/gif"
                       multiple
@@ -368,65 +443,65 @@ export default function UploadWizard({
                       onChange={(e) => acceptFiles(e.target.files)}
                     />
                   </label>
+                  {format !== "image" && (
+                    <button
+                      type="button"
+                      onClick={() => setShowImages(false)}
+                      className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      Hide
+                    </button>
+                  )}
                 </div>
-
-                {files.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-                    {files.map((f, i) => (
-                      <div key={f.name + i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
-                        <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold text-white">
-                          {i + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
-                          className="absolute right-1 top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
-                          title="Remove image"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
+
+              {files.length > 0 ? (
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                  {files.map((f, i) => (
+                    <div
+                      key={f.name + i}
+                      className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
+                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 py-0.5 text-[9px] font-bold text-white">
+                        {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                        className="absolute right-1 top-1 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+                        title="Remove image"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <label
+                  htmlFor="diagrams-upload-input"
+                  className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 py-6 text-center transition hover:border-emerald-400 hover:bg-emerald-50/30 dark:border-slate-800 dark:bg-slate-800/40"
+                >
+                  <ImageIcon className="h-6 w-6 text-slate-400" />
+                  <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    Click to select 1–8 images or drag &amp; drop
+                  </p>
+                  <p className="text-[11px] text-slate-400">PNG, JPG, WEBP or GIF up to 5MB each</p>
+                </label>
+              )}
             </div>
           )}
 
-          {format !== "video" && format !== "blog" && (
+          {/* Audio or Document Specific File Dropzone */}
+          {(format === "audio" || format === "doc") && (
             <label
               htmlFor="file-drop"
               className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900"
             >
               <Upload className="mb-3 h-8 w-8 text-emerald-600" />
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{LIMITS[format].label}</p>
-              {files.length > 0 && format === "image" ? (
-                <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 w-full max-w-lg">
-                  {files.map((f, i) => (
-                    <div key={f.name + i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={URL.createObjectURL(f)} alt="" className="h-full w-full object-cover" />
-                      <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                        {i + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setFiles(files.filter((_, idx) => idx !== i));
-                        }}
-                        className="absolute right-1 top-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
-                        title="Remove image"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : files.length > 0 && (
+              {files.length > 0 && (
                 <ul className="mt-3 w-full max-w-md space-y-1">
                   {files.map((f) => (
                     <li key={f.name} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200 dark:text-slate-300 dark:ring-slate-700">
@@ -440,11 +515,38 @@ export default function UploadWizard({
                 id="file-drop"
                 type="file"
                 accept={LIMITS[format].accept}
-                multiple={format === "image"}
                 className="sr-only"
                 onChange={(e) => acceptFiles(e.target.files)}
               />
             </label>
+          )}
+
+          {/* 3. Rich Text & Code Notes Editor Block */}
+          {showWriteup && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-2 flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <FileText className="h-4 w-4 text-emerald-600" />
+                  <span>
+                    {format === "video"
+                      ? "Video Walkthrough Notes & Code"
+                      : format === "image"
+                      ? "Diagram Walkthrough Explanation & Code"
+                      : "Article & Code Walkthrough"}
+                  </span>
+                </label>
+                {format !== "blog" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowWriteup(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    Hide
+                  </button>
+                )}
+              </div>
+              <RichTextEditor onChange={setBodyHtml} />
+            </div>
           )}
 
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}

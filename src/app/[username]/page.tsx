@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import PostCard, { type PostCardData } from "@/components/post-card";
 import FollowButton from "@/components/follow-button";
-import ShareRow from "@/components/share-row";
+import ShareMenu from "@/components/share-menu";
 import {
   GithubIcon,
   LinkedinIcon,
@@ -85,10 +85,48 @@ export async function generateMetadata({
   };
 }
 
+function isPlaceholderSocial(raw?: string): boolean {
+  if (!raw || typeof raw !== "string") return true;
+  const val = raw.trim().toLowerCase();
+  if (!val || val === "null" || val === "undefined") return true;
+
+  if (
+    val === "username" ||
+    val === "@username" ||
+    val === "@channel" ||
+    val === "channel" ||
+    val.endsWith("/username") ||
+    val.endsWith("/username/") ||
+    val.endsWith("/@channel") ||
+    val.endsWith("/@channel/") ||
+    val.includes("yourportfolio.com") ||
+    val.includes("example.com") ||
+    val.includes("myportfolio.com") ||
+    val === "https://github.com" ||
+    val === "https://github.com/" ||
+    val === "https://linkedin.com" ||
+    val === "https://linkedin.com/" ||
+    val === "https://linkedin.com/in" ||
+    val === "https://linkedin.com/in/" ||
+    val === "https://instagram.com" ||
+    val === "https://instagram.com/" ||
+    val === "https://facebook.com" ||
+    val === "https://facebook.com/" ||
+    val === "https://x.com" ||
+    val === "https://x.com/" ||
+    val === "https://twitter.com" ||
+    val === "https://twitter.com/" ||
+    val === "https://youtube.com" ||
+    val === "https://youtube.com/"
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function normalizeSocialUrl(val?: string, defaultHost?: string): string | null {
-  if (!val || typeof val !== "string") return null;
-  const trimmed = val.trim();
-  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
+  if (isPlaceholderSocial(val)) return null;
+  const trimmed = val!.trim();
 
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
@@ -187,7 +225,14 @@ export default async function PortfolioPage({
 
   const links = profile.links ?? {};
   const customLinks = Array.isArray(links.custom)
-    ? links.custom.filter((c) => c && typeof c.key === "string" && typeof c.url === "string" && c.url.trim())
+    ? links.custom.filter(
+        (c) =>
+          c &&
+          typeof c.key === "string" &&
+          c.key.trim() &&
+          typeof c.url === "string" &&
+          !isPlaceholderSocial(c.url)
+      )
     : [];
 
   const isSavedTab = tab === "saved" && isSelf;
@@ -302,9 +347,10 @@ export default async function PortfolioPage({
                 self={false}
               />
             )}
-            <ShareRow
+            <ShareMenu
               title={`${profile.full_name ?? profile.username}'s Learning Portfolio`}
               path={`/@${profile.username}`}
+              label="Share"
             />
           </div>
         </div>

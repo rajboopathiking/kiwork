@@ -7,7 +7,7 @@ import { parseVideoUrl } from "@/lib/media";
 import EngagementBar from "@/components/engagement-bar";
 import CommentSection, { type CommentData } from "@/components/comment-section";
 import FollowButton from "@/components/follow-button";
-import ShareRow from "@/components/share-row";
+import ShareMenu from "@/components/share-menu";
 import ReportButton from "@/components/report-button";
 import ImageCarousel from "@/components/image-carousel";
 import BlogContent from "@/components/blog-content";
@@ -43,7 +43,7 @@ interface PostFull {
   post_topics: { topics: { id: string; name: string; slug: string }[] } | null;
 }
 
-function parsePostFiles(raw: unknown): { images: string[]; devResources: DeveloperResourcesData } {
+function parsePostFiles(raw: unknown): { images: string[]; devResources: DeveloperResourcesData; videoUrl?: string } {
   let parsed: unknown = raw;
   if (typeof raw === "string") {
     try {
@@ -71,7 +71,11 @@ function parsePostFiles(raw: unknown): { images: string[]; devResources: Develop
       demo_url: typeof record.demo_url === "string" && record.demo_url.trim() ? record.demo_url.trim() : undefined,
       docs_url: typeof record.docs_url === "string" && record.docs_url.trim() ? record.docs_url.trim() : undefined,
     };
-    return { images, devResources };
+    const videoUrl =
+      typeof record.video_url === "string" && record.video_url.trim()
+        ? record.video_url.trim()
+        : undefined;
+    return { images, devResources, videoUrl };
   }
 
   return { images: [], devResources: {} };
@@ -163,7 +167,15 @@ export default async function PostPage({
   });
   const author = post.profiles;
   const topics = post.post_topics?.topics ?? [];
-  const { images, devResources } = parsePostFiles(post.files);
+  const { images, devResources, videoUrl: extraVideoUrl } = parsePostFiles(post.files);
+  const activeVideoUrl =
+    post.format === "video" && post.media_url ? post.media_url : extraVideoUrl;
+  const activeImages =
+    images.length > 0
+      ? images
+      : post.format === "image" && post.media_url
+      ? [post.media_url]
+      : [];
 
   // engagement state (server-computed, client toggles the rest)
   let engagement = { likes: 0, helpedCount: 0, liked: false, helped: false, saved: false };
@@ -326,56 +338,42 @@ export default async function PostPage({
 
       {/* content per format & multi-combination support */}
       <div className="space-y-6">
-        {post.format === "video" && (
+        {/* Video Player (Primary video post or attached video walkthrough) */}
+        {activeVideoUrl && (
           <div>
-            <VideoBlock url={post.media_url ?? ""} />
-            {post.body && (
-              <div className="mt-6">
-                <BlogContent html={post.body} />
-              </div>
-            )}
+            <VideoBlock url={activeVideoUrl} />
           </div>
         )}
 
-        {post.format === "audio" && (
+        {/* Audio Player */}
+        {post.format === "audio" && post.media_url && (
           <div>
-            <AudioBlock url={post.media_url ?? ""} />
-            {post.body && (
-              <div className="mt-6">
-                <BlogContent html={post.body} />
-              </div>
-            )}
+            <AudioBlock url={post.media_url} />
           </div>
         )}
 
-        {post.format === "image" && (
+        {/* Document Viewer */}
+        {post.format === "doc" && post.media_url && (
+          <DocBlock url={post.media_url} title={post.title} />
+        )}
+
+        {/* Architecture Diagrams & Screenshots Carousel */}
+        {activeImages.length > 0 && (
           <div>
-            <ImageCarousel
-              urls={images.length ? images : post.media_url ? [post.media_url] : []}
-              title={post.title}
-            />
-            {post.body && (
-              <div className="mt-6">
-                <BlogContent html={post.body} />
+            {(activeVideoUrl || post.body) && (
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Architecture Diagrams &amp; Screenshots ({activeImages.length})</span>
               </div>
             )}
+            <ImageCarousel urls={activeImages} title={post.title} />
           </div>
         )}
 
-        {post.format === "doc" && <DocBlock url={post.media_url ?? ""} title={post.title} />}
-
-        {post.format === "blog" && (
-          <div className="space-y-6">
-            {images.length > 0 && (
-              <div>
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Attached Diagrams &amp; Screenshots ({images.length})</span>
-                </div>
-                <ImageCarousel urls={images} title={post.title} />
-              </div>
-            )}
-            <BlogContent html={post.body ?? ""} />
+        {/* Rich Text Article & Code Walkthrough */}
+        {post.body && (
+          <div className="mt-4">
+            <BlogContent html={post.body} />
           </div>
         )}
       </div>
@@ -383,7 +381,7 @@ export default async function PostPage({
       {/* community actions */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <EngagementBar postId={post.id} initial={engagement} signedIn={!!me} />
-        <ShareRow title={post.title} path={`/post/${post.id}`} />
+        <ShareMenu title={post.title} path={`/post/${post.id}`} />
       </div>
 
       <div className="mt-4 flex items-center justify-between">

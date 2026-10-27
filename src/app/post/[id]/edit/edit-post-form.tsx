@@ -18,6 +18,9 @@ import {
   Trash2,
   X,
   AlertTriangle,
+  Upload,
+  ImageIcon,
+  FileText,
 } from "lucide-react";
 
 interface Topic {
@@ -54,8 +57,8 @@ export default function EditPostForm({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  // extract existing images & developer resources
-  const { existingImages, existingResources } = useMemo(() => {
+  // extract existing images, video & developer resources
+  const { existingImages, existingResources, initialVideoUrl } = useMemo(() => {
     let raw: unknown = post.files;
     if (typeof raw === "string") {
       try {
@@ -66,6 +69,7 @@ export default function EditPostForm({
     }
     let images: string[] = [];
     const resources: Record<string, string> = {};
+    let extraVideo: string = "";
 
     if (Array.isArray(raw)) {
       images = raw.filter((item): item is string => typeof item === "string");
@@ -78,19 +82,28 @@ export default function EditPostForm({
       if (typeof record.github_url === "string") resources.github_url = record.github_url;
       if (typeof record.demo_url === "string") resources.demo_url = record.demo_url;
       if (typeof record.docs_url === "string") resources.docs_url = record.docs_url;
+      if (typeof record.video_url === "string") extraVideo = record.video_url;
     }
-    return { existingImages: images, existingResources: resources };
-  }, [post.files]);
+
+    if (images.length === 0 && post.format === "image" && post.media_url) {
+      images = [post.media_url];
+    }
+
+    const videoVal = post.format === "video" ? (post.media_url ?? "") : extraVideo;
+
+    return { existingImages: images, existingResources: resources, initialVideoUrl: videoVal };
+  }, [post.files, post.format, post.media_url]);
 
   // form state
   const [title, setTitle] = useState(post.title ?? "");
   const [description, setDescription] = useState(post.description ?? "");
   const [bodyHtml, setBodyHtml] = useState(post.body ?? "");
-  const [videoUrl, setVideoUrl] = useState(post.media_url ?? "");
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl);
   const [currentImages, setCurrentImages] = useState<string[]>(existingImages);
   const [language, setLanguage] = useState(post.language ?? "en");
   const [visibility, setVisibility] = useState(post.visibility ?? "public");
   const [selectedTopics, setSelectedTopics] = useState<string[]>(initialTopicIds);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // developer resources
   const [colabUrl, setColabUrl] = useState(existingResources.colab_url ?? "");
@@ -103,7 +116,7 @@ export default function EditPostForm({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const videoRef = post.format === "video" ? parseVideoUrl(videoUrl) : null;
+  const videoRef = parseVideoUrl(videoUrl);
 
   function cleanUrl(u: string): string {
     const trimmed = u.trim();
@@ -112,6 +125,34 @@ export default function EditPostForm({
       return `https://${trimmed}`;
     }
     return trimmed;
+  }
+
+  async function handleAddImages(filesList: FileList | null) {
+    if (!filesList || filesList.length === 0) return;
+    setUploadingImages(true);
+    setError(null);
+    try {
+      const newUrls: string[] = [];
+      for (const f of Array.from(filesList)) {
+        if (f.size > 5 * 1024 * 1024) {
+          throw new Error(`"${f.name}" is larger than 5MB limit.`);
+        }
+        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const path = `${post.author_id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: upErr } = await supabase.storage.from("images").upload(path, f, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from("images").getPublicUrl(path);
+        if (data.publicUrl) newUrls.push(data.publicUrl);
+      }
+      setCurrentImages((prev) => [...prev, ...newUrls].slice(0, 8));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload image.");
+    } finally {
+      setUploadingImages(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -129,33 +170,42 @@ export default function EditPostForm({
       const githubClean = cleanUrl(githubUrl);
       const demoClean = cleanUrl(demoUrl);
       const docsClean = cleanUrl(docsUrl);
+      const videoClean = cleanUrl(videoUrl);
 
-      const devResources: Record<string, string> = {};
-      if (colabClean) devResources.colab_url = colabClean;
-      if (githubClean) devResources.github_url = githubClean;
-      if (demoClean) devResources.demo_url = demoClean;
-      if (docsClean) devResources.docs_url = docsClean;
-
-      const hasDevResources = Object.keys(devResources).length > 0;
-
-      let updatedFiles: unknown = null;
+      const filesObj: Record<string, unknown> = {};
       if (currentImages.length > 0) {
-        updatedFiles = hasDevResources ? { images: currentImages, ...devResources } : { images: currentImages };
-      } else if (hasDevResources) {
-        updatedFiles = devResources;
+        filesObj.images = currentImages;
       }
+      if (videoClean) {
+        const parsedV = parseVideoUrl(videoClean);
+        if (parsedV) {
+          filesObj.video_url = parsedV.embedUrl;
+          filesObj.video_thumbnail = parsedV.thumbnailUrl;
+        } else {
+          filesObj.video_url = videoClean;
+        }
+      }
+      if (colabClean) filesObj.colab_url = colabClean;
+      if (githubClean) filesObj.github_url = githubClean;
+      if (demoClean) filesObj.demo_url = demoClean;
+      if (docsClean) filesObj.docs_url = docsClean;
 
-      let updatedMediaUrl = currentImages.length > 0 ? currentImages[0] : post.media_url;
-      let updatedMediaUrl2 = currentImages.length > 0 ? currentImages[0] : post.media_url_2;
-      let updatedBody = bodyHtml.trim() || null;
+      let updatedMediaUrl = post.media_url;
+      let updatedMediaUrl2 = post.media_url_2;
 
       if (post.format === "video") {
         if (videoRef) {
           updatedMediaUrl = videoRef.embedUrl;
           updatedMediaUrl2 = videoRef.thumbnailUrl;
-        } else {
-          updatedMediaUrl = videoUrl.trim() || null;
+        } else if (videoClean) {
+          updatedMediaUrl = videoClean;
         }
+      } else if (post.format === "image" && currentImages.length > 0) {
+        updatedMediaUrl = currentImages[0];
+        updatedMediaUrl2 = currentImages[0];
+      } else if (post.format === "blog" && currentImages.length > 0) {
+        updatedMediaUrl = currentImages[0];
+        updatedMediaUrl2 = currentImages[0];
       }
 
       // update post record
@@ -164,10 +214,10 @@ export default function EditPostForm({
         .update({
           title: title.trim(),
           description: description.trim() || null,
-          body: updatedBody,
+          body: bodyHtml.trim() || null,
           media_url: updatedMediaUrl,
           media_url_2: updatedMediaUrl2,
-          files: updatedFiles,
+          files: Object.keys(filesObj).length > 0 ? filesObj : null,
           language,
           visibility,
         })
@@ -278,51 +328,72 @@ export default function EditPostForm({
             />
           </div>
 
-          {/* Format content */}
-          {post.format === "blog" && (
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-900 dark:text-slate-200">
-                Blog Article Content
-              </label>
-              <RichTextEditor
-                onChange={setBodyHtml}
-                initialContent={post.body ?? ""}
-              />
-            </div>
-          )}
-
-          {post.format === "video" && (
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-900 dark:text-slate-200">
-                Video Link (YouTube / Vimeo)
-              </label>
-              <input
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-              />
-              {videoRef && (
-                <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-800/50">
-                  <p className="flex items-center gap-2 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-                    <MonitorPlay className="h-3.5 w-3.5 text-emerald-600" />
-                    Video recognized ({videoRef.provider}) · id: {videoRef.id}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Attached Images & Diagrams Management */}
-          {currentImages.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/50">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Attached Diagrams / Screenshots ({currentImages.length})
-                </span>
-                <span className="text-[11px] text-slate-400">Click &apos;x&apos; to remove an image</span>
+          {/* Video Walkthrough Block */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+            <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              <MonitorPlay className="h-4 w-4 text-emerald-600" />
+              <span>Video Walkthrough (YouTube / Vimeo)</span>
+            </label>
+            <input
+              type="url"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            {videoRef && (
+              <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-800/50">
+                <p className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <MonitorPlay className="h-3.5 w-3.5" />
+                  Recognized {videoRef.provider === "youtube" ? "YouTube" : "Vimeo"} video (id: {videoRef.id})
+                </p>
               </div>
+            )}
+          </div>
+
+          {/* Attached Architecture Diagrams & Screenshots Block */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/40">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <ImageIcon className="h-4 w-4 text-emerald-600" />
+                  <span>Architecture Diagrams &amp; Screenshots ({currentImages.length}/8)</span>
+                </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Upload or remove diagrams, flowcharts, or screenshots
+                </p>
+              </div>
+
+              <label
+                htmlFor="edit-diagrams-upload-input"
+                className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-emerald-400 dark:hover:text-emerald-400 ${
+                  uploadingImages ? "pointer-events-none opacity-50" : ""
+                }`}
+              >
+                {uploadingImages ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Uploading…</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>Add Images</span>
+                  </>
+                )}
+                <input
+                  id="edit-diagrams-upload-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  className="sr-only"
+                  disabled={uploadingImages || currentImages.length >= 8}
+                  onChange={(e) => handleAddImages(e.target.files)}
+                />
+              </label>
+            </div>
+
+            {currentImages.length > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
                 {currentImages.map((imgUrl, i) => (
                   <div key={i} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
@@ -339,8 +410,20 @@ export default function EditPostForm({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Article & Code Walkthrough Rich Text Editor */}
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              <FileText className="h-4 w-4 text-emerald-600" />
+              <span>Article, Walkthrough &amp; Code Notes</span>
+            </label>
+            <RichTextEditor
+              onChange={setBodyHtml}
+              initialContent={post.body ?? ""}
+            />
+          </div>
 
           {/* Developer Productivity & Learning Hub */}
           <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/40 p-4.5 dark:border-emerald-500/20 dark:bg-emerald-950/20">

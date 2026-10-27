@@ -37,6 +37,50 @@ interface Profile {
   } | null;
 }
 
+function isPlaceholderSocial(raw?: string): boolean {
+  if (!raw || typeof raw !== "string") return true;
+  const val = raw.trim().toLowerCase();
+  if (!val || val === "null" || val === "undefined") return true;
+
+  if (
+    val === "username" ||
+    val === "@username" ||
+    val === "@channel" ||
+    val === "channel" ||
+    val.endsWith("/username") ||
+    val.endsWith("/username/") ||
+    val.endsWith("/@channel") ||
+    val.endsWith("/@channel/") ||
+    val.includes("yourportfolio.com") ||
+    val.includes("example.com") ||
+    val.includes("myportfolio.com") ||
+    val === "https://github.com" ||
+    val === "https://github.com/" ||
+    val === "https://linkedin.com" ||
+    val === "https://linkedin.com/" ||
+    val === "https://linkedin.com/in" ||
+    val === "https://linkedin.com/in/" ||
+    val === "https://instagram.com" ||
+    val === "https://instagram.com/" ||
+    val === "https://facebook.com" ||
+    val === "https://facebook.com/" ||
+    val === "https://x.com" ||
+    val === "https://x.com/" ||
+    val === "https://twitter.com" ||
+    val === "https://twitter.com/" ||
+    val === "https://youtube.com" ||
+    val === "https://youtube.com/"
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function cleanInitial(raw?: string): string {
+  if (isPlaceholderSocial(raw)) return "";
+  return raw!.trim();
+}
+
 export default function SettingsForm({ profile }: { profile: Profile }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -44,18 +88,23 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [username, setUsername] = useState(profile.username);
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [github, setGithub] = useState(profile.links?.github ?? "");
-  const [linkedin, setLinkedin] = useState(profile.links?.linkedin ?? "");
-  const [twitter, setTwitter] = useState(profile.links?.twitter ?? "");
-  const [instagram, setInstagram] = useState(profile.links?.instagram ?? "");
-  const [facebook, setFacebook] = useState(profile.links?.facebook ?? "");
-  const [youtube, setYoutube] = useState(profile.links?.youtube ?? "");
-  const [website, setWebsite] = useState(profile.links?.website ?? "");
+  const [github, setGithub] = useState(cleanInitial(profile.links?.github));
+  const [linkedin, setLinkedin] = useState(cleanInitial(profile.links?.linkedin));
+  const [twitter, setTwitter] = useState(cleanInitial(profile.links?.twitter));
+  const [instagram, setInstagram] = useState(cleanInitial(profile.links?.instagram));
+  const [facebook, setFacebook] = useState(cleanInitial(profile.links?.facebook));
+  const [youtube, setYoutube] = useState(cleanInitial(profile.links?.youtube));
+  const [website, setWebsite] = useState(cleanInitial(profile.links?.website));
 
   const [customLinks, setCustomLinks] = useState<CustomLink[]>(
     Array.isArray(profile.links?.custom)
       ? profile.links.custom.filter(
-          (c) => c && typeof c.key === "string" && typeof c.url === "string"
+          (c) =>
+            c &&
+            typeof c.key === "string" &&
+            c.key.trim() &&
+            typeof c.url === "string" &&
+            !isPlaceholderSocial(c.url)
         )
       : []
   );
@@ -115,16 +164,16 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
 
       const cleanedCustom = customLinks
         .map((c) => ({ key: c.key.trim(), url: cleanUrlInput(c.url) }))
-        .filter((c) => c.key && c.url);
+        .filter((c) => c.key && c.url && !isPlaceholderSocial(c.url));
 
       const linksPayload: Record<string, unknown> = {};
-      if (github.trim()) linksPayload.github = cleanUrlInput(github);
-      if (linkedin.trim()) linksPayload.linkedin = cleanUrlInput(linkedin);
-      if (twitter.trim()) linksPayload.twitter = cleanUrlInput(twitter);
-      if (instagram.trim()) linksPayload.instagram = cleanUrlInput(instagram);
-      if (facebook.trim()) linksPayload.facebook = cleanUrlInput(facebook);
-      if (youtube.trim()) linksPayload.youtube = cleanUrlInput(youtube);
-      if (website.trim()) linksPayload.website = cleanUrlInput(website);
+      if (github.trim() && !isPlaceholderSocial(github)) linksPayload.github = cleanUrlInput(github);
+      if (linkedin.trim() && !isPlaceholderSocial(linkedin)) linksPayload.linkedin = cleanUrlInput(linkedin);
+      if (twitter.trim() && !isPlaceholderSocial(twitter)) linksPayload.twitter = cleanUrlInput(twitter);
+      if (instagram.trim() && !isPlaceholderSocial(instagram)) linksPayload.instagram = cleanUrlInput(instagram);
+      if (facebook.trim() && !isPlaceholderSocial(facebook)) linksPayload.facebook = cleanUrlInput(facebook);
+      if (youtube.trim() && !isPlaceholderSocial(youtube)) linksPayload.youtube = cleanUrlInput(youtube);
+      if (website.trim() && !isPlaceholderSocial(website)) linksPayload.website = cleanUrlInput(website);
       if (cleanedCustom.length > 0) linksPayload.custom = cleanedCustom;
 
       const { error: upErr2 } = await supabase

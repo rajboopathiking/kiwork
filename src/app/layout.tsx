@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   },
   description:
     "A free, friendly community where you share what you just learned — video, audio, images, slides, or blog.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
   ),

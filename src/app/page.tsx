@@ -1,69 +1,146 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  FileCheck2,
+  FileText,
+  Headphones,
+  HeartHandshake,
+  ImageIcon,
+  Lightbulb,
+  MonitorPlay,
+  Presentation,
+  UserPlus,
+} from "lucide-react";
+
+const FORMATS = [
+  { icon: MonitorPlay, label: "Video", desc: "Paste a YouTube link of your explainer" },
+  { icon: Headphones, label: "Audio", desc: "Recorded voice notes & podcasts" },
+  { icon: ImageIcon, label: "Images", desc: "Handwritten notes, screenshots, drawings" },
+  { icon: FileText, label: "Blog", desc: "Rich-text write-ups of what you learned" },
+  { icon: Presentation, label: "Slides", desc: "PPTX you made for your class or team" },
+  { icon: FileCheck2, label: "PDF", desc: "Notes, cheat-sheets, summaries" },
+];
+
+const STEPS = [
+  {
+    icon: Lightbulb,
+    title: "1. Study anything",
+    desc: "A concept, a tool, a chapter, a course — whatever you're learning right now.",
+  },
+  {
+    icon: BookOpen,
+    title: "2. Share it your way",
+    desc: "Write a blog, record audio, upload notes or slides, or just paste a YouTube video you made.",
+  },
+  {
+    icon: HeartHandshake,
+    title: "3. Build a helping community",
+    desc: "Someone stuck on the same topic finds your post — and when they learn it, they share too.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-20 text-center sm:pt-24">
+        <p className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+          <Lightbulb className="h-3.5 w-3.5" />
+          A free, friendly community for self-learners
+        </p>
+        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+          Learn it. <span className="text-emerald-600">Share it.</span> Help
+          others learn it.
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
+          When you study something new, post what you learned — as{" "}
+          <strong>video, audio, notes, slides or a blog</strong>. Someone out
+          there is studying the same thing and needs exactly what you just
+          figured out.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link
+            href="/signup"
+            className="flex items-center gap-2 rounded-full bg-emerald-600 px-7 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+          >
+            <UserPlus className="h-4 w-4" />
+            Start sharing — free
+          </Link>
+          <Link
+            href="/explore"
+            className="flex items-center gap-2 rounded-full border border-slate-300 px-7 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Browse posts
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Any format */}
+      <section className="border-y border-slate-100 bg-slate-50 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
+            Share knowledge in ANY format
+          </h2>
+          <p className="mt-2 text-center text-slate-500">
+            No more forcing your notes into one rigid template.
           </p>
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {FORMATS.map(({ icon: Icon, label, desc }) => (
+              <div
+                key={label}
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <Icon className="h-5 w-5" />
+                </span>
+                <h3 className="font-semibold text-slate-900">{label}</h3>
+                <p className="mt-1 text-sm text-slate-500">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* How it works */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
+          How KIWORK works
+        </h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {STEPS.map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                <Icon className="h-5 w-5" />
+              </span>
+              <h3 className="font-semibold text-slate-900">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* Community CTA */}
+      <section className="mx-auto max-w-6xl px-4 pb-20">
+        <div className="rounded-3xl bg-slate-900 px-6 py-12 text-center sm:px-12">
+          <h2 className="text-2xl font-bold text-white sm:text-3xl">
+            Every learner becomes a teacher
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-slate-300">
+            Your portfolio at <strong className="font-mono">@yourname</strong>{" "}
+            shows everything you've learned and shared — one link you can send
+            to recruiters, classmates, or friends.
+          </p>
+          <Link
+            href="/signup"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-emerald-500 px-7 py-3 font-semibold text-white transition hover:bg-emerald-400"
+          >
+            Claim your portfolio
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

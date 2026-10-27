@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 import { parseVideoUrl } from "@/lib/media";
+import EngagementBar from "@/components/engagement-bar";
+import CommentSection, { type CommentData } from "@/components/comment-section";
+import FollowButton from "@/components/follow-button";
 import {
   ArrowLeft,
   Eye,
@@ -47,6 +51,8 @@ export default async function PostPage({
 }) {
   const { id } = await params;
 
+  const { user: me } = await getCurrentUser();
+
   let post: PostFull | null = null;
   try {
     const supabase = await createClient();
@@ -82,6 +88,46 @@ export default async function PostPage({
   const author = post.profiles;
   const topics = post.post_topics?.topics ?? [];
   const files: string[] = post.files ? JSON.parse(post.files) : [];
+
+  // engagement state (server-computed, client toggles the rest)
+  let engagement = { likes: 0, helpedCount: 0, liked: false, helped: false, saved: false };
+  let comments: CommentData[] = [];
+  let followers = 0;
+  let followingAuthor = false;
+  try {
+    const supabase = await createClient();
+    const [likesC, helpedC, saveRow, likeRow, helpRow, commentsRows, followersC, followRow] =
+      await Promise.all([
+        supabase.from("likes").select("*", { count: "exact", head: true }).eq("post_id", id),
+        supabase.from("helped").select("*", { count: "exact", head: true }).eq("post_id", id),
+        me ? supabase.from("saves").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+        me ? supabase.from("likes").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+        me ? supabase.from("helped").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+        supabase
+          .from("comments")
+          .select("id, body, created_at, author_id, profiles(username, full_name, avatar_url)")
+          .eq("post_id", id)
+          .order("created_at", { ascending: true }),
+        author
+          ? supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", author.id)
+          : Promise.resolve(null),
+        author && me
+          ? supabase.from("follows").select("follower_id").eq("following_id", author.id).eq("follower_id", me.id).maybeSingle()
+          : Promise.resolve(null),
+      ]);
+    engagement = {
+      likes: likesC?.count ?? 0,
+      helpedCount: helpedC?.count ?? 0,
+      liked: !!((likeRow as unknown as { data: unknown })?.data),
+      helped: !!((helpRow as unknown as { data: unknown })?.data),
+      saved: !!((saveRow as unknown as { data: unknown })?.data),
+    };
+    comments = (commentsRows?.data as unknown as CommentData[]) ?? [];
+    followers = followersC?.count ?? 0;
+    followingAuthor = !!((followRow as unknown as { data: unknown })?.data);
+  } catch {
+    // keep zeros — page content still renders
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -157,14 +203,22 @@ export default async function PostPage({
         )}
       </div>
 
-      {/* community placeholders (Phase 3) */}
-      <div className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center text-sm text-slate-500">
-        <p>
-          <strong className="text-slate-700">Helped you?</strong> A
-          &quot;Helped me&quot; button, comments and follows land in Phase 3 —
-          this space will light up.
-        </p>
+      {/* community actions */}
+      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <EngagementBar postId={post.id} initial={engagement} signedIn={!!me} />
+        {author && (
+          <FollowButton
+            targetId={author.id}
+            initialFollowing={followingAuthor}
+            initialFollowers={followers}
+            signedIn={!!me}
+            self={me?.id === author.id}
+            className="self-start rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          />
+        )}
       </div>
+
+      <CommentSection postId={post.id} initialComments={comments} currentUserId={me?.id ?? null} />
     </div>
   );
 }

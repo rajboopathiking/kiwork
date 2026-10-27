@@ -6,6 +6,7 @@ export interface Profile {
   full_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  links: { github?: string; linkedin?: string; website?: string } | null;
 }
 
 export interface PostCardData {
@@ -31,7 +32,7 @@ export async function getCurrentUser() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("id, username, full_name, avatar_url, bio")
+      .select("id, username, full_name, avatar_url, bio, links")
       .eq("id", user.id)
       .single();
 

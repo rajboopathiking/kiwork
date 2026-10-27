@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, PlusCircle, LogIn, Lightbulb } from "lucide-react";
+import { BookOpen, LogIn, Lightbulb, PlusCircle, Search } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function Navbar() {
@@ -23,6 +23,26 @@ export default async function Navbar() {
         >
           <BookOpen className="h-4 w-4" />
           <span>Explore</span>
+        </Link>
+
+        <form action="/search" className="ml-1 hidden flex-1 md:block">
+          <div className="relative max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="search"
+              name="q"
+              placeholder="Search posts & people…"
+              className="w-full rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
+            />
+          </div>
+        </form>
+
+        <Link
+          href="/search"
+          className="ml-auto text-slate-500 hover:text-emerald-700 md:hidden"
+          title="Search"
+        >
+          <Search className="h-5 w-5" />
         </Link>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">

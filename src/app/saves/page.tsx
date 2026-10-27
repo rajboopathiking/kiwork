@@ -20,19 +20,23 @@ export default async function SavesPage() {
   let posts: PostCardData[] = [];
   try {
     const supabase = await createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("saves")
       .select(
-        "created_at, posts!saves_post_id_fkey(id, format, title, description, media_url_2, views, created_at, author_id, visibility, profiles!posts_author_id_fkey(username, avatar_url))"
+        "created_at, posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url))"
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
+    if (error) {
+      console.error("Error loading saves:", error);
+    }
+
     posts = ((data ?? [])
       .map((r) => (r as unknown as { posts: PostCardData & { visibility: string } }).posts)
       .filter((p) => p && p.visibility === "public")) as PostCardData[];
-  } catch {
-    // Supabase query failed or env missing
+  } catch (err) {
+    console.error("SavesPage catch error:", err);
   }
 
   return (

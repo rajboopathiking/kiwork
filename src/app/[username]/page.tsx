@@ -162,7 +162,7 @@ export default async function PortfolioPage({
 
   try {
     const supabase = await createClient();
-    const [postsData, postsCnt, helpedC, followersC, followRow, savesData] = await Promise.all([
+    const results = await Promise.allSettled([
       supabase
         .from("posts")
         .select("id, format, title, description, media_url_2, views, created_at, author_id, files, profiles!posts_author_id_fkey(username, avatar_url)")
@@ -177,13 +177,13 @@ export default async function PortfolioPage({
         .eq("author_id", profile.id),
       supabase
         .from("helped")
-        .select("posts!helped_post_id_fkey(author_id)", { count: "exact", head: true })
+        .select("posts!inner(author_id)", { count: "exact", head: true })
         .eq("posts.author_id", profile.id),
       supabase
         .from("follows")
         .select("*", { count: "exact", head: true })
         .eq("following_id", profile.id),
-      authorIsMe(profile.id, me?.id)
+      isSelf
         ? Promise.resolve(null)
         : me
           ? supabase
@@ -202,6 +202,13 @@ export default async function PortfolioPage({
         : Promise.resolve(null),
     ]);
 
+    const postsData = results[0].status === "fulfilled" ? results[0].value : null;
+    const postsCnt = results[1].status === "fulfilled" ? results[1].value : null;
+    const helpedC = results[2].status === "fulfilled" ? results[2].value : null;
+    const followersC = results[3].status === "fulfilled" ? results[3].value : null;
+    const followRow = results[4].status === "fulfilled" ? results[4].value : null;
+    const savesData = results[5].status === "fulfilled" ? results[5].value : null;
+
     posts = (postsData?.data as unknown as PostCardData[]) ?? [];
     stats = {
       posts: postsCnt?.count ?? posts.length,
@@ -215,8 +222,8 @@ export default async function PortfolioPage({
         .map((r) => r.posts)
         .filter((p): p is PostCardData => Boolean(p && p.id));
     }
-  } catch {
-    // Supabase query failed or env missing
+  } catch (err) {
+    console.error("Profile page data fetch error:", err);
   }
 
   function authorIsMe(targetId: string, myId?: string) {

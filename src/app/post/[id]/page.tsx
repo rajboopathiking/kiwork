@@ -184,25 +184,34 @@ export default async function PostPage({
   let followingAuthor = false;
   try {
     const supabase = await createClient();
-    const [likesC, helpedC, saveRow, likeRow, helpRow, commentsRows, followersC, followRow] =
-      await Promise.all([
-        supabase.from("likes").select("*", { count: "exact", head: true }).eq("post_id", id),
-        supabase.from("helped").select("*", { count: "exact", head: true }).eq("post_id", id),
-        me ? supabase.from("saves").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
-        me ? supabase.from("likes").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
-        me ? supabase.from("helped").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
-        supabase
-          .from("comments")
-          .select("id, body, created_at, author_id, profiles(username, full_name, avatar_url)")
-          .eq("post_id", id)
-          .order("created_at", { ascending: true }),
-        author
-          ? supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", author.id)
-          : Promise.resolve(null),
-        author && me
-          ? supabase.from("follows").select("follower_id").eq("following_id", author.id).eq("follower_id", me.id).maybeSingle()
-          : Promise.resolve(null),
-      ]);
+    const results = await Promise.allSettled([
+      supabase.from("likes").select("*", { count: "exact", head: true }).eq("post_id", id),
+      supabase.from("helped").select("*", { count: "exact", head: true }).eq("post_id", id),
+      me ? supabase.from("saves").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+      me ? supabase.from("likes").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+      me ? supabase.from("helped").select("user_id").eq("post_id", id).eq("user_id", me.id).maybeSingle() : Promise.resolve(null),
+      supabase
+        .from("comments")
+        .select("id, body, created_at, author_id, profiles(username, full_name, avatar_url)")
+        .eq("post_id", id)
+        .order("created_at", { ascending: true }),
+      author
+        ? supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", author.id)
+        : Promise.resolve(null),
+      author && me
+        ? supabase.from("follows").select("follower_id").eq("following_id", author.id).eq("follower_id", me.id).maybeSingle()
+        : Promise.resolve(null),
+    ]);
+
+    const likesC = results[0].status === "fulfilled" ? results[0].value : null;
+    const helpedC = results[1].status === "fulfilled" ? results[1].value : null;
+    const saveRow = results[2].status === "fulfilled" ? results[2].value : null;
+    const likeRow = results[3].status === "fulfilled" ? results[3].value : null;
+    const helpRow = results[4].status === "fulfilled" ? results[4].value : null;
+    const commentsRows = results[5].status === "fulfilled" ? results[5].value : null;
+    const followersC = results[6].status === "fulfilled" ? results[6].value : null;
+    const followRow = results[7].status === "fulfilled" ? results[7].value : null;
+
     engagement = {
       likes: likesC?.count ?? 0,
       helpedCount: helpedC?.count ?? 0,
@@ -213,8 +222,8 @@ export default async function PostPage({
     comments = (commentsRows?.data as unknown as CommentData[]) ?? [];
     followers = followersC?.count ?? 0;
     followingAuthor = !!((followRow as unknown as { data: unknown })?.data);
-  } catch {
-    // keep zeros — page content still renders
+  } catch (err) {
+    console.error("Post engagement load error:", err);
   }
 
   const isAuthor = me?.id === post.author_id;
@@ -380,7 +389,12 @@ export default async function PostPage({
 
       {/* community actions */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <EngagementBar postId={post.id} initial={engagement} signedIn={!!me} />
+        <EngagementBar
+          postId={post.id}
+          initial={engagement}
+          signedIn={!!me}
+          currentUserId={me?.id ?? null}
+        />
         <ShareMenu title={post.title} path={`/post/${post.id}`} />
       </div>
 

@@ -1,64 +1,65 @@
 import Link from "next/link";
-import {
-  FileCheck2,
-  FileText,
-  Headphones,
-  Hammer,
-  ImageIcon,
-  MonitorPlay,
-  Presentation,
-} from "lucide-react";
-
-const FORMATS = [
-  { icon: MonitorPlay, label: "Video", desc: "Paste a YouTube link", soon: false },
-  { icon: FileText, label: "Blog post", desc: "Rich-text write-up", soon: false },
-  { icon: ImageIcon, label: "Notes / Images", desc: "Photos & screenshots", soon: false },
-  { icon: Headphones, label: "Audio", desc: "Voice notes & recordings", soon: false },
-  { icon: Presentation, label: "Slides (PPTX)", desc: "Present what you learned", soon: false },
-  { icon: FileCheck2, label: "PDF", desc: "Summaries & cheat-sheets", soon: false },
-];
+import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import UploadWizard from "./upload-wizard";
+import { LogIn } from "lucide-react";
 
 export const metadata = { title: "Share" };
 
-export default function UploadPage() {
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <div className="text-center">
-        <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
-          <Hammer className="h-5 w-5" />
+interface Topic {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export default async function UploadPage() {
+  const { user, profile } = await getCurrentUser();
+
+  if (!user || !profile) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center">
+        <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
+          <LogIn className="h-5 w-5" />
         </span>
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          Share what you learned
-        </h1>
-        <p className="mt-2 text-slate-500">
-          Pick your format — the upload wizard opens in Phase 2.
+        <h1 className="text-2xl font-bold text-slate-900">Log in to share</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Create your free account first — then share what you learned in any
+          format.
         </p>
-      </div>
-
-      <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {FORMATS.map(({ icon: Icon, label, desc }) => (
-          <div
-            key={label}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        <div className="mt-6 flex gap-3">
+          <Link
+            href="/login"
+            className="rounded-full border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-              <Icon className="h-5 w-5" />
-            </span>
-            <h3 className="font-semibold text-slate-900">{label}</h3>
-            <p className="mt-1 text-sm text-slate-500">{desc}</p>
-          </div>
-        ))}
+            Log in
+          </Link>
+          <Link
+            href="/signup"
+            className="rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Sign up free
+          </Link>
+        </div>
       </div>
+    );
+  }
 
-      <p className="mt-10 text-center text-sm text-slate-500">
-        Ready to fill this? Next setup steps live in{" "}
-        <code className="rounded bg-slate-100 px-1.5 py-0.5">SETUP_GUIDE.md</code>{" "}
-        — then explore the{" "}
-        <Link href="/explore" className="font-semibold text-emerald-700 hover:underline">
-          empty feed
-        </Link>{" "}
-        that&apos;s waiting for your first post.
-      </p>
-    </div>
+  let topics: Topic[] = [];
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("topics")
+      .select("id, name, slug")
+      .order("name", { ascending: true });
+    topics = data ?? [];
+  } catch {
+    topics = [];
+  }
+
+  return (
+    <UploadWizard
+      author={profile.username}
+      topics={topics}
+    />
   );
 }

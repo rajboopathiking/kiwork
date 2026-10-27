@@ -15,7 +15,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sentTo, setSentTo] = useState<string | null>(null);
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -45,33 +44,19 @@ export default function SignupPage() {
       if (error) throw error;
 
       if (data.session) {
-        // email auto-confirm is ON → logged in right away
+        // email auth confirmed in dev → logged in right away
         router.push("/explore");
         router.refresh();
       } else {
-        // confirmation email sent
-        setSentTo(email.trim());
+        // fallback (confirmation enabled in prod): account created, go log in
+        router.push("/login?created=1");
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign up.");
     } finally {
       setLoading(false);
     }
-  }
-
-  if (sentTo) {
-    return (
-      <div className="mx-auto flex w-full max-w-md flex-col items-center px-4 py-20 text-center">
-        <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
-          <Mail className="h-5 w-5" />
-        </span>
-        <h1 className="text-2xl font-bold text-slate-900">Confirm your email</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          We sent a confirmation link to <strong>{sentTo}</strong>. Tap it to
-          activate your KIWORK account (check spam too).
-        </p>
-      </div>
-    );
   }
 
   return (

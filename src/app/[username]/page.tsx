@@ -79,6 +79,20 @@ export async function generateMetadata({
   };
 }
 
+function normalizeSocialUrl(val?: string, defaultHost?: string): string | null {
+  if (!val || typeof val !== "string") return null;
+  const trimmed = val.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (defaultHost && !trimmed.includes(".")) {
+    return `https://${defaultHost}/${trimmed.replace(/^@/, "")}`;
+  }
+  return `https://${trimmed.replace(/^@/, "")}`;
+}
+
 export default async function PortfolioPage({
   params,
 }: {
@@ -164,43 +178,36 @@ export default async function PortfolioPage({
             </h1>
             <p className="font-mono text-sm text-emerald-700 dark:text-emerald-400">@{profile.username} · kiwork</p>
             {profile.bio && <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-300">{profile.bio}</p>}
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
-              {links.github && (
-                <a href={links.github} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" title="GitHub">
-                  <GithubIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.linkedin && (
-                <a href={links.linkedin} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-sky-50 hover:text-sky-600 dark:text-slate-400 dark:hover:bg-sky-950/50 dark:hover:text-sky-400" title="LinkedIn">
-                  <LinkedinIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.instagram && (
-                <a href={links.instagram} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-pink-50 hover:text-pink-600 dark:text-slate-400 dark:hover:bg-pink-950/50 dark:hover:text-pink-400" title="Instagram">
-                  <InstagramIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.facebook && (
-                <a href={links.facebook} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-blue-950/50 dark:hover:text-blue-400" title="Facebook">
-                  <FacebookIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.twitter && (
-                <a href={links.twitter} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" title="X / Twitter">
-                  <TwitterIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.youtube && (
-                <a href={links.youtube} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/50 dark:hover:text-rose-400" title="YouTube">
-                  <YoutubeIcon className="h-4 w-4" />
-                </a>
-              )}
-              {links.website && (
-                <a href={links.website} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400" title="Website / Portfolio">
-                  <Globe className="h-4 w-4" />
-                </a>
-              )}
-            </div>
+            {(() => {
+              const socialItems = [
+                { key: "github", href: normalizeSocialUrl(links.github, "github.com"), icon: GithubIcon, label: "GitHub", hover: "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white" },
+                { key: "linkedin", href: normalizeSocialUrl(links.linkedin, "linkedin.com/in"), icon: LinkedinIcon, label: "LinkedIn", hover: "hover:bg-sky-50 hover:text-sky-600 dark:hover:bg-sky-950/50 dark:hover:text-sky-400" },
+                { key: "instagram", href: normalizeSocialUrl(links.instagram, "instagram.com"), icon: InstagramIcon, label: "Instagram", hover: "hover:bg-pink-50 hover:text-pink-600 dark:hover:bg-pink-950/50 dark:hover:text-pink-400" },
+                { key: "facebook", href: normalizeSocialUrl(links.facebook, "facebook.com"), icon: FacebookIcon, label: "Facebook", hover: "hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/50 dark:hover:text-blue-400" },
+                { key: "twitter", href: normalizeSocialUrl(links.twitter, "x.com"), icon: TwitterIcon, label: "X / Twitter", hover: "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white" },
+                { key: "youtube", href: normalizeSocialUrl(links.youtube, "youtube.com"), icon: YoutubeIcon, label: "YouTube", hover: "hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50 dark:hover:text-rose-400" },
+                { key: "website", href: normalizeSocialUrl(links.website), icon: Globe, label: "Website", hover: "hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-400" },
+              ].filter((item): item is typeof item & { href: string } => Boolean(item.href));
+
+              if (socialItems.length === 0) return null;
+
+              return (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {socialItems.map(({ key, href, icon: Icon, label, hover }) => (
+                    <a
+                      key={key}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition ${hover} dark:text-slate-400`}
+                      title={label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">

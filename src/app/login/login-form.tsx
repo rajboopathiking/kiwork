@@ -86,16 +86,16 @@ export function LoginForm() {
         <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
           <Lightbulb className="h-5 w-5" />
         </span>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h1>
         <p className="mt-1 text-sm text-slate-500">
           Log in to share what you learned
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
         <form onSubmit={handleEmailSignIn} className="space-y-4">
           {authError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p className="rounded-lg bg-red-950 px-3 py-2 text-sm text-red-400">
               Sign-in link expired. Please try again.
             </p>
           )}
@@ -113,7 +113,7 @@ export function LoginForm() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
@@ -131,18 +131,18 @@ export function LoginForm() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p className="rounded-lg bg-red-950 px-3 py-2 text-sm text-red-400">
               {error}
             </p>
           )}
           {notice && (
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            <p className="rounded-lg bg-emerald-950 px-3 py-2 text-sm text-emerald-300">
               {notice}
             </p>
           )}
@@ -156,17 +156,17 @@ export function LoginForm() {
           </button>
         </form>
 
-        <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" />
+        <div className="my-4 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-600">
+          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
           or
-          <span className="h-px flex-1 bg-slate-200" />
+          <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
         </div>
 
         <button
           type="button"
           onClick={handleMagicLink}
           disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-60"
         >
           <Sparkles className="h-4 w-4 text-emerald-600" />
           {loading === "magic" ? "Sending link…" : "Email me a magic link"}
@@ -176,7 +176,7 @@ export function LoginForm() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading !== null}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-60"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -188,7 +188,7 @@ export function LoginForm() {
         </button>
       </div>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         New to KIWORK?{" "}
         <Link href="/signup" className="font-semibold text-emerald-700 hover:underline">
           Create a free account

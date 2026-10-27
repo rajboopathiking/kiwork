@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Bold,
   Italic,
@@ -21,6 +23,7 @@ export default function RichTextEditor({
   onChange: (html: string) => void;
 }) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         link: false,
@@ -42,7 +45,7 @@ export default function RichTextEditor({
   });
 
   const btn =
-    "flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+    "flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white";
   const btnActive = "flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100 text-emerald-800";
 
   if (!editor) {
@@ -52,8 +55,8 @@ export default function RichTextEditor({
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
-      <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50 p-2">
+    <div className="rounded-lg border border-slate-300 bg-white focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -87,7 +90,7 @@ export default function RichTextEditor({
           <Strikethrough className="h-4 w-4" />
         </button>
 
-        <span className="mx-1 w-px self-stretch bg-slate-200" />
+        <span className="mx-1 w-px self-stretch bg-slate-200 dark:bg-slate-700" />
 
         {[1, 2, 3].map((level) => (
           <button
@@ -103,7 +106,7 @@ export default function RichTextEditor({
           </button>
         ))}
 
-        <span className="mx-1 w-px self-stretch bg-slate-200" />
+        <span className="mx-1 w-px self-stretch bg-slate-200 dark:bg-slate-700" />
 
         <button
           type="button"
@@ -130,7 +133,7 @@ export default function RichTextEditor({
           <Quote className="h-4 w-4" />
         </button>
 
-        <span className="mx-1 w-px self-stretch bg-slate-200" />
+        <span className="mx-1 w-px self-stretch bg-slate-200 dark:bg-slate-700" />
 
         <button
           type="button"
@@ -153,7 +156,7 @@ export default function RichTextEditor({
           <Link2 className="h-4 w-4 opacity-40" />
         </button>
 
-        <span className="mx-1 w-px self-stretch bg-slate-200" />
+        <span className="mx-1 w-px self-stretch bg-slate-200 dark:bg-slate-700" />
 
         <button
           type="button"

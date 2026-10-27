@@ -31,8 +31,8 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  const input = "w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20";
-  const label = "mb-1 block text-sm font-medium text-slate-700";
+  const input = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
+  const label = "mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200";
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -96,8 +96,8 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
 
   return (
     <form onSubmit={handleSave} className="mx-auto max-w-2xl space-y-5 px-4 py-10">
-      <h1 className="text-2xl font-bold text-slate-900">Edit profile</h1>
-      <p className="-mt-3 text-sm text-slate-500">
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Edit profile</h1>
+      <p className="-mt-3 text-sm text-slate-500 dark:text-slate-400">
         This is what the community sees at <Link href={`/@${username}`} className="font-mono text-emerald-700 hover:underline">/@{username}</Link>
       </p>
 
@@ -116,7 +116,7 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
         )}
         <label
           htmlFor="avatar-input"
-          className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
         >
           <ImagePlus className="h-4 w-4" />
           {avatarFile ? "Change photo" : "Upload photo"}
@@ -128,7 +128,7 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
           className="sr-only"
           onChange={(e) => onAvatarPick(e.target.files)}
         />
-        <p className="text-xs text-slate-400">PNG/JPG · under 2 MB</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">PNG/JPG · under 2 MB</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -171,11 +171,11 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
         </div>
       </div>
 
-      {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
-      {done && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Saved!</p>}
+      {error && <p className="rounded-lg bg-red-950 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {done && <p className="rounded-lg bg-emerald-950 px-3 py-2 text-sm text-emerald-300">Saved!</p>}
 
       <div className="flex justify-end gap-3">
-        <Link href={`/@${username}`} className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+        <Link href={`/@${username}`} className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
           Cancel
         </Link>
         <button

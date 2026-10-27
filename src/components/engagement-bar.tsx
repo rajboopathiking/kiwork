@@ -57,7 +57,7 @@ export default function EngagementBar({ postId, initial, signedIn }: Props) {
 
   const chip =
     "flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition disabled:opacity-50";
-  const off = "border-slate-300 text-slate-600 hover:border-slate-400";
+  const off = "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600";
   const onHeart = "border-rose-300 bg-rose-50 text-rose-600";
   const onHelp = "border-emerald-500 bg-emerald-50 text-emerald-700";
   const onSave = "border-amber-300 bg-amber-50 text-amber-700";

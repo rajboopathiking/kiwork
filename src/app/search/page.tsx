@@ -67,7 +67,7 @@ export default async function SearchPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+      <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
         {hasQuery ? `Search: “${query}”` : "Search KIWORK"}
       </h1>
 
@@ -85,7 +85,7 @@ export default async function SearchPage({
               className={
                 type === key
                   ? "rounded-full bg-slate-900 px-4 py-1.5 text-sm font-medium text-white"
-                  : "rounded-full border border-slate-300 px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                  : "rounded-full border border-slate-300 px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
               }
             >
               {label}
@@ -95,11 +95,11 @@ export default async function SearchPage({
       )}
 
       {!hasQuery && (
-        <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center">
+        <div className="mt-10 flex flex-col items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-14 text-center dark:border-slate-700 dark:bg-slate-900">
           <Search className="mb-3 h-10 w-10 text-slate-300" />
           <p className="max-w-md text-sm text-slate-500">
             Type a search above (in the browser URL:{" "}
-            <code className="rounded bg-white px-1.5 py-0.5">/search?q=recursion</code>) —
+            <code className="rounded bg-white px-1.5 py-0.5 dark:bg-slate-800">/search?q=recursion</code>) —
             or paste the search box once it&apos;s in the navbar (coming next build).
           </p>
         </div>
@@ -121,7 +121,7 @@ export default async function SearchPage({
                   <Link
                     key={s.id}
                     href={`/@${s.username}`}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
                   >
                     {s.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -132,7 +132,7 @@ export default async function SearchPage({
                       </span>
                     )}
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">{s.full_name ?? s.username}</p>
+                      <p className="truncate font-semibold text-slate-900 dark:text-white">{s.full_name ?? s.username}</p>
                       <p className="truncate font-mono text-xs text-emerald-700">@{s.username}</p>
                     </div>
                   </Link>

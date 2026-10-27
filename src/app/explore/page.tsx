@@ -64,8 +64,8 @@ export default async function ExplorePage({
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Explore posts</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">Explore posts</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             What learners shared this week
           </p>
         </div>
@@ -89,7 +89,7 @@ export default async function ExplorePage({
               className={
                 active
                   ? "shrink-0 rounded-full bg-slate-900 px-4 py-1.5 text-sm font-medium text-white"
-                  : "shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  : "shrink-0 rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900"
               }
             >
               {label}
@@ -170,12 +170,12 @@ function PostCard({ post }: { post: PostCardData }) {
 
 function EmptyFeed({ format }: { format: string }) {
   return (
-    <div className="mt-16 flex flex-col items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
+    <div className="mt-16 flex flex-col items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center dark:border-slate-700 dark:bg-slate-900">
       <Inbox className="mb-4 h-10 w-10 text-slate-300" />
-      <h2 className="text-lg font-semibold text-slate-900">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
         Nothing here yet — be the first!
       </h2>
-      <p className="mt-2 max-w-md text-sm text-slate-500">
+      <p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
         {format === "all"
           ? "The feed is empty because no one has shared yet. Your notes could help someone tonight."
           : "No posts of this format yet. Got something to share in this format?"}
@@ -195,20 +195,20 @@ function SetupNotice() {
   return (
     <div className="mt-16 flex flex-col items-center rounded-3xl border border-amber-200 bg-amber-50 px-6 py-12 text-center">
       <Lightbulb className="mb-3 h-8 w-8 text-amber-500" />
-      <h2 className="text-lg font-semibold text-slate-900">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
         Connect Supabase to bring the feed alive
       </h2>
-      <div className="mt-3 max-w-lg text-left text-sm text-slate-600">
+      <div className="mt-3 max-w-lg text-left text-sm text-slate-600 dark:text-slate-300">
         <ol className="list-decimal space-y-1 pl-5">
           <li>Create a free project at supabase.com</li>
           <li>
-            Run <code className="rounded bg-white px-1">supabase/schema.sql</code> in
+            Run <code className="rounded bg-white px-1 dark:bg-slate-800">supabase/schema.sql</code> in
             the SQL editor
           </li>
           <li>
-            Paste your project URL + anon key into <code className="rounded bg-white px-1">.env.local</code>
+            Paste your project URL + anon key into <code className="rounded bg-white px-1 dark:bg-slate-800">.env.local</code>
           </li>
-          <li>Restart: <code className="rounded bg-white px-1">npm run dev</code></li>
+          <li>Restart: <code className="rounded bg-white px-1 dark:bg-slate-800">npm run dev</code></li>
         </ol>
       </div>
     </div>

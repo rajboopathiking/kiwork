@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import PostCard, { type PostCardData } from "@/components/post-card";
 import FollowButton from "@/components/follow-button";
+import ShareRow from "@/components/share-row";
 import { GithubIcon, LinkedinIcon } from "@/components/brand-icons";
-import { Globe, Pencil, Share2 } from "lucide-react";
-
-export const metadata = { title: "Portfolio" };
+import { Globe, Pencil } from "lucide-react";
 
 interface ProfileFull {
   id: string;
@@ -16,6 +16,52 @@ interface ProfileFull {
   avatar_url: string | null;
   bio: string | null;
   links: { github?: string; linkedin?: string; website?: string } | null;
+}
+
+async function fetchProfile(username: string): Promise<ProfileFull | null> {
+  try {
+    const supabase = await createClient();
+    const { data: p, error: pErr } = await supabase
+      .from("profiles")
+      .select("id, username, full_name, avatar_url, bio, links")
+      .eq("username", username)
+      .single();
+    if (pErr || !p) return null;
+    return (p as unknown as ProfileFull) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username: raw } = await params;
+  const username = decodeURIComponent(raw).replace(/^@/, "");
+  if (!username) return { title: "Portfolio" };
+
+  const profile = await fetchProfile(username);
+  if (!profile) return { title: "Portfolio" };
+
+  const name = profile.full_name ?? `@${profile.username}`;
+  const title = `${name}'s Learning Portfolio`;
+  const description =
+    profile.bio ??
+    `See what @${profile.username} learned and shared on KIWORK — video, audio, slides, notes & blogs.`;
+  const ogImage = `/api/og?title=${encodeURIComponent(title)}&author=${encodeURIComponent(profile.username)}`;
+
+  return {
+    title: `${name} (@${profile.username})`,
+    description,
+    openGraph: {
+      title: `${name} (@${profile.username}) · KIWORK`,
+      description,
+      images: [ogImage],
+    },
+    twitter: { images: [ogImage] },
+  };
 }
 
 export default async function PortfolioPage({
@@ -29,21 +75,15 @@ export default async function PortfolioPage({
 
   const { user: me } = await getCurrentUser();
 
-  let profile: ProfileFull | null = null;
+  const profile = await fetchProfile(username);
+  if (!profile) notFound();
+
   let posts: PostCardData[] = [];
   let stats = { posts: 0, helped: 0, followers: 0 };
   let following = false;
 
   try {
     const supabase = await createClient();
-    const { data: p, error: pErr } = await supabase
-      .from("profiles")
-      .select("id, username, full_name, avatar_url, bio, links")
-      .eq("username", username)
-      .single();
-    if (pErr || !p) notFound();
-    profile = p as unknown as ProfileFull;
-
     const [postsData, postsCnt, helpedC, followersC, followRow] = await Promise.all([
       supabase
         .from("posts")
@@ -83,10 +123,8 @@ export default async function PortfolioPage({
     };
     following = !!((followRow as unknown as { data: unknown })?.data);
   } catch {
-    notFound();
+    // Supabase query failed or env missing
   }
-
-  if (!profile) notFound();
 
   const links = profile.links ?? {};
   const isSelf = me?.id === profile.id;
@@ -94,49 +132,49 @@ export default async function PortfolioPage({
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       {/* header */}
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 sm:p-8 dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white" />
+            <img src={profile.avatar_url} alt="" className="h-20 w-20 rounded-2xl object-cover ring-2 ring-white dark:ring-slate-800" />
           ) : (
-            <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-600 text-3xl font-bold text-white">
+            <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-3xl font-bold text-white">
               {(profile.full_name ?? profile.username).charAt(0).toUpperCase()}
             </span>
           )}
 
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
               {profile.full_name ?? profile.username}
             </h1>
-            <p className="font-mono text-sm text-emerald-700">@{profile.username} · kiwork</p>
-            {profile.bio && <p className="mt-1 max-w-xl text-sm text-slate-600">{profile.bio}</p>}
+            <p className="font-mono text-sm text-emerald-700 dark:text-emerald-400">@{profile.username} · kiwork</p>
+            {profile.bio && <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-300">{profile.bio}</p>}
             <div className="mt-2 flex gap-3">
               {links.github && (
-                <a href={links.github} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700" title="GitHub">
+                <a href={links.github} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="GitHub">
                   <GithubIcon className="h-5 w-5" />
                 </a>
               )}
               {links.linkedin && (
-                <a href={links.linkedin} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700" title="LinkedIn">
+                <a href={links.linkedin} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="LinkedIn">
                   <LinkedinIcon className="h-5 w-5" />
                 </a>
               )}
               {links.website && (
-                <a href={links.website} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700" title="Website">
+                <a href={links.website} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400" title="Website">
                   <Globe className="h-5 w-5" />
                 </a>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isSelf ? (
               <Link
                 href="/settings"
-                className="flex items-center gap-1.5 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white"
+                className="flex items-center gap-1.5 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <Pencil className="h-4 w-4" /> Edit
+                <Pencil className="h-4 w-4" /> Edit profile
               </Link>
             ) : (
               <FollowButton
@@ -147,7 +185,10 @@ export default async function PortfolioPage({
                 self={false}
               />
             )}
-            <Shareicon username={profile.username} />
+            <ShareRow
+              title={`${profile.full_name ?? profile.username}'s Learning Portfolio`}
+              path={`/@${profile.username}`}
+            />
           </div>
         </div>
 
@@ -160,12 +201,12 @@ export default async function PortfolioPage({
       </div>
 
       {/* posts */}
-      <h2 className="mt-10 text-lg font-semibold text-slate-900">
+      <h2 className="mt-10 text-lg font-semibold text-slate-900 dark:text-white">
         What {isSelf ? "you" : "they"} learned & shared
       </h2>
       {posts.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {isSelf
               ? "Nothing shared yet — your first post becomes portfolio evidence."
               : "This learner hasn't shared publicly yet."}
@@ -190,26 +231,18 @@ export default async function PortfolioPage({
   );
 }
 
-function Shareicon({ username }: { username: string }) {
-  return (
-    <span
-      title="Share this portfolio link"
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 text-slate-500 hover:bg-white"
-    >
-      <Share2 className="h-4 w-4" data-copy-hint={`/@${username}`} />
-    </span>
-  );
-}
-
 function Stat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div
       className={
-        "rounded-2xl px-4 py-3 text-center " + (highlight ? "bg-emerald-600" : "bg-white ring-1 ring-slate-200")
+        "rounded-2xl px-4 py-3 text-center " +
+        (highlight
+          ? "bg-emerald-600 text-white"
+          : "bg-white ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700")
       }
     >
-      <p className={"text-xl font-bold " + (highlight ? "text-white" : "text-slate-900")}>{value}</p>
-      <p className={"text-[11px] font-medium " + (highlight ? "text-emerald-100" : "text-slate-500")}>{label}</p>
+      <p className={"text-xl font-bold " + (highlight ? "text-white" : "text-slate-900 dark:text-white")}>{value}</p>
+      <p className={"text-[11px] font-medium " + (highlight ? "text-emerald-100" : "text-slate-500 dark:text-slate-400")}>{label}</p>
     </div>
   );
 }

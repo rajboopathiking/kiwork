@@ -159,14 +159,16 @@ export default function UploadWizard({
           body,
           media_url: mediaUrl,
           media_url_2: mediaUrl2,
-          files: filesJson ? JSON.stringify(filesJson) : null,
-          external_flag: format === "video",
+          files: filesJson ?? null,
           language,
           visibility,
         })
         .select("id")
         .single();
-      if (insErr) throw insErr;
+      if (insErr) {
+        console.error("Supabase insert post error:", insErr);
+        throw new Error(insErr.message || "Failed to create post");
+      }
 
       if (selectedTopics.length > 0) {
         await supabase
@@ -186,8 +188,8 @@ export default function UploadWizard({
     <div className="mx-auto max-w-3xl px-4 py-10">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Share what you learned</h1>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">Share what you learned</h1>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
           @{author}
         </span>
       </div>
@@ -197,7 +199,7 @@ export default function UploadWizard({
             <span
               className={
                 "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold " +
-                (step >= s ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500")
+                (step >= s ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-300")
               }
             >
               {s}
@@ -217,13 +219,13 @@ export default function UploadWizard({
               <button
                 key={f}
                 onClick={() => pickFormat(f)}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md"
+                className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                   <Icon className="h-5 w-5" />
                 </span>
                 <span>
-                  <span className="block font-semibold text-slate-900">{label}</span>
+                  <span className="block font-semibold text-slate-900 dark:text-white">{label}</span>
                   <span className="mt-0.5 block text-sm text-slate-500">{desc}</span>
                 </span>
               </button>
@@ -236,10 +238,10 @@ export default function UploadWizard({
       {step === 2 && format && (
         <div className="mt-8 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-slate-900">
+            <h2 className="font-semibold text-slate-900 dark:text-white">
               {FORMAT_OPTIONS.find((o) => o.format === format)?.label}
             </h2>
-            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+            <button onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:text-slate-400 dark:hover:text-white">
               <ArrowLeft className="h-4 w-4" /> Change format
             </button>
           </div>
@@ -251,7 +253,7 @@ export default function UploadWizard({
                 placeholder="https://www.youtube.com/watch?v=..."
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
               />
               {videoUrl && !videoRef && (
                 <p className="text-sm text-red-600">
@@ -259,7 +261,7 @@ export default function UploadWizard({
                 </p>
               )}
               {videoRef && (
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
                   {videoRef.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={videoRef.thumbnailUrl} alt="" className="h-48 w-full object-cover" />
@@ -268,7 +270,7 @@ export default function UploadWizard({
                       Vimeo video — preview plays on the post page
                     </div>
                   )}
-                  <p className="flex items-center gap-2 px-3 py-2 text-xs text-slate-500">
+                  <p className="flex items-center gap-2 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                     <MonitorPlay className="h-3.5 w-3.5 text-emerald-600" />
                     {videoRef.provider === "youtube" ? "YouTube" : "Vimeo"} · id {videoRef.id}
                   </p>
@@ -282,14 +284,14 @@ export default function UploadWizard({
           {format !== "video" && format !== "blog" && (
             <label
               htmlFor="file-drop"
-              className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50"
+              className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-emerald-400 hover:bg-emerald-50/50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-900"
             >
               <Upload className="mb-3 h-8 w-8 text-emerald-600" />
-              <p className="text-sm font-medium text-slate-700">{LIMITS[format].label}</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">{LIMITS[format].label}</p>
               {files.length > 0 && (
                 <ul className="mt-3 w-full max-w-md space-y-1">
                   {files.map((f) => (
-                    <li key={f.name} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200">
+                    <li key={f.name} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200 dark:text-slate-300 dark:ring-slate-700">
                       <span className="truncate">{f.name}</span>
                       <span className="text-slate-400">{humanFileSize(f.size)}</span>
                     </li>
@@ -327,26 +329,26 @@ export default function UploadWizard({
           <h2 className="font-semibold text-slate-900">Post details</h2>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Title *</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={120}
               placeholder="e.g. How recursion finally clicked for me"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Short description</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Short description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
               rows={2}
               placeholder="One line a learner read before clicking"
-              className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
@@ -368,7 +370,7 @@ export default function UploadWizard({
                       "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition " +
                       (on
                         ? "bg-emerald-600 text-white"
-                        : "border border-slate-300 bg-white text-slate-600 hover:border-emerald-400")
+                        : "border border-slate-300 bg-white text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300")
                     }
                   >
                     {on && <X className="h-3 w-3" />}
@@ -377,16 +379,16 @@ export default function UploadWizard({
                 );
               })}
             </div>
-            <p className="mt-1 text-xs text-slate-400">Pick up to 4 so the right learners find it.</p>
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Pick up to 4 so the right learners find it.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Language</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Language</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm outline-none focus:border-emerald-500"
               >
                 <option value="en">English</option>
                 <option value="ta">Tamil</option>
@@ -395,11 +397,11 @@ export default function UploadWizard({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Visibility</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">Visibility</label>
               <select
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 text-sm outline-none focus:border-emerald-500"
               >
                 <option value="public">Public — community can see</option>
                 <option value="private">Private — only me</option>
@@ -412,7 +414,7 @@ export default function UploadWizard({
           <div className="flex items-center justify-between pt-2">
             <button
               onClick={() => setStep(2)}
-              className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900"
+              className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white dark:text-slate-400 dark:hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
@@ -432,7 +434,7 @@ export default function UploadWizard({
             </button>
           </div>
 
-          <p className="text-center text-xs text-slate-400">
+          <p className="text-center text-xs text-slate-400 dark:text-slate-500">
             Only share content you have the right to share. Community guidelines coming in{" "}
             <Link href="/help" className="underline">Help</Link>.
           </p>

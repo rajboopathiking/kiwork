@@ -37,28 +37,28 @@ export default function PostCard({ post }: { post: PostCardData }) {
   });
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
       <Link href={`/post/${post.id}`} className="block">
-        <div className="flex h-36 items-center justify-center bg-gradient-to-br from-emerald-50 to-slate-50">
+        <div className="flex h-36 items-center justify-center bg-gradient-to-br from-emerald-50 to-slate-50 dark:from-slate-800 dark:to-slate-800/40">
           {post.media_url_2 ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={post.media_url_2} alt="" className="h-full w-full object-cover" />
           ) : (
-            <Icon className="h-9 w-9 text-emerald-300" />
+            <Icon className="h-9 w-9 text-emerald-300/60" />
           )}
         </div>
         <div className="p-4">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
             <Icon className="h-3 w-3" />
             {meta.label}
           </span>
-          <h3 className="mt-2 line-clamp-2 font-semibold text-slate-900 group-hover:text-emerald-700">
+          <h3 className="mt-2 line-clamp-2 font-semibold text-slate-900 group-hover:text-emerald-700 dark:text-white dark:group-hover:text-emerald-400">
             {post.title}
           </h3>
           {post.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{post.description}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{post.description}</p>
           )}
-          <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+          <div className="mt-3 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
             <span>@{authorName}</span>
             <span>·</span>
             <span>{date}</span>

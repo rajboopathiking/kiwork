@@ -68,9 +68,9 @@ export default function CommentSection({
 
   return (
     <section className="mt-10">
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
         Comments
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
           {comments.length}
         </span>
       </h2>
@@ -86,7 +86,7 @@ export default function CommentSection({
               ? "Ask a doubt or say thanks…"
               : "Log in to join the conversation"
           }
-          className="flex-1 rounded-full border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+          className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
         <button
           type="submit"
@@ -103,7 +103,7 @@ export default function CommentSection({
         {comments.map((c) => (
           <li
             key={c.id}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
           >
             <div className="flex items-center gap-2">
               {c.profiles?.avatar_url ? (
@@ -116,7 +116,7 @@ export default function CommentSection({
               )}
               <Link
                 href={`/@${c.profiles?.username ?? ""}`}
-                className="text-sm font-semibold text-slate-700 hover:text-emerald-700"
+                className="text-sm font-semibold text-slate-700 hover:text-emerald-700 dark:text-slate-200 dark:hover:text-emerald-400"
               >
                 @{c.profiles?.username ?? "unknown"}
               </Link>
@@ -138,7 +138,7 @@ export default function CommentSection({
           </li>
         ))}
         {comments.length === 0 && (
-          <li className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-400">
+          <li className="rounded-2xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-400 dark:border-slate-700">
             No comments yet — be the one who helps first.
           </li>
         )}

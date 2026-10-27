@@ -45,15 +45,15 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-4 pb-16 pt-20 text-center sm:pt-24">
-        <p className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+        <p className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
           <Lightbulb className="h-3.5 w-3.5" />
           A free, friendly community for self-learners
         </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+        <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
           Learn it. <span className="text-emerald-600">Share it.</span> Help
           others learn it.
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600 dark:text-slate-300">
           When you study something new, post what you learned — as{" "}
           <strong>video, audio, notes, slides or a blog</strong>. Someone out
           there is studying the same thing and needs exactly what you just
@@ -69,7 +69,7 @@ export default function Home() {
           </Link>
           <Link
             href="/explore"
-            className="flex items-center gap-2 rounded-full border border-slate-300 px-7 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-full border border-slate-300 px-7 py-3 font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
           >
             Browse posts
             <ArrowRight className="h-4 w-4" />
@@ -78,24 +78,24 @@ export default function Home() {
       </section>
 
       {/* Any format */}
-      <section className="border-y border-slate-100 bg-slate-50 py-16">
+      <section className="border-y border-slate-100 bg-slate-50 py-16 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
+          <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
             Share knowledge in ANY format
           </h2>
-          <p className="mt-2 text-center text-slate-500">
+          <p className="mt-2 text-center text-slate-500 dark:text-slate-400">
             No more forcing your notes into one rigid template.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {FORMATS.map(({ icon: Icon, label, desc }) => (
               <div
                 key={label}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
               >
-                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                   <Icon className="h-5 w-5" />
                 </span>
-                <h3 className="font-semibold text-slate-900">{label}</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">{label}</h3>
                 <p className="mt-1 text-sm text-slate-500">{desc}</p>
               </div>
             ))}
@@ -105,17 +105,17 @@ export default function Home() {
 
       {/* How it works */}
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
+        <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl dark:text-white">
           How KIWORK works
         </h2>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
           {STEPS.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div key={title} className="rounded-2xl border border-slate-200 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
               <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
                 <Icon className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-slate-900">{title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
+              <h3 className="font-semibold text-slate-900 dark:text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{desc}</p>
             </div>
           ))}
         </div>

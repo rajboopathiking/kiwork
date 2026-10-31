@@ -34,7 +34,7 @@ export default async function SavesPage() {
 
     posts = ((data ?? [])
       .map((r) => (r as unknown as { posts: PostCardData & { visibility: string } }).posts)
-      .filter((p) => p && p.visibility === "public")) as PostCardData[];
+      .filter((p) => p && (p.visibility === "public" || p.author_id === user.id))) as PostCardData[];
   } catch (err) {
     console.error("SavesPage catch error:", err);
   }

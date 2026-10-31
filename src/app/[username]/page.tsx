@@ -14,7 +14,7 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "@/components/brand-icons";
-import { Bookmark, ExternalLink, Globe, LayoutGrid, Pencil } from "lucide-react";
+import { Bookmark, ExternalLink, Globe, LayoutGrid, Lock, Pencil, PlusCircle } from "lucide-react";
 
 interface CustomLink {
   key: string;
@@ -163,13 +163,22 @@ export default async function PortfolioPage({
   try {
     const supabase = await createClient();
     const results = await Promise.allSettled([
-      supabase
-        .from("posts")
-        .select("id, format, title, description, media_url_2, views, created_at, author_id, files, profiles!posts_author_id_fkey(username, avatar_url)")
-        .eq("visibility", "public")
-        .eq("author_id", profile.id)
-        .order("created_at", { ascending: false })
-        .limit(60),
+      // For author viewing their own profile: fetch both public and private posts.
+      // For visitors: fetch only public posts.
+      isSelf
+        ? supabase
+            .from("posts")
+            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)")
+            .eq("author_id", profile.id)
+            .order("created_at", { ascending: false })
+            .limit(100)
+        : supabase
+            .from("posts")
+            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)")
+            .eq("visibility", "public")
+            .eq("author_id", profile.id)
+            .order("created_at", { ascending: false })
+            .limit(60),
       supabase
         .from("posts")
         .select("*", { count: "exact", head: true })
@@ -211,7 +220,7 @@ export default async function PortfolioPage({
 
     posts = (postsData?.data as unknown as PostCardData[]) ?? [];
     stats = {
-      posts: postsCnt?.count ?? posts.length,
+      posts: postsCnt?.count ?? (isSelf ? posts.filter((p) => p.visibility !== "private").length : posts.length),
       helped: helpedC?.count ?? 0,
       followers: followersC?.count ?? 0,
     };
@@ -242,8 +251,12 @@ export default async function PortfolioPage({
       )
     : [];
 
+  const publicPosts = isSelf ? posts.filter((p) => p.visibility !== "private") : posts;
+  const privatePosts = isSelf ? posts.filter((p) => p.visibility === "private") : [];
+
   const isSavedTab = tab === "saved" && isSelf;
-  const displayedPosts = isSavedTab ? savedPosts : posts;
+  const isPrivateTab = tab === "private" && isSelf;
+  const displayedPosts = isSavedTab ? savedPosts : isPrivateTab ? privatePosts : publicPosts;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -324,6 +337,31 @@ export default async function PortfolioPage({
                   <Pencil className="h-4 w-4" /> Edit profile
                 </Link>
 
+                {/* Private Files & Posts Shortcut */}
+                <Link
+                  href={`/@${profile.username}?tab=private`}
+                  className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    isPrivateTab
+                      ? "border-amber-600 bg-amber-500 text-white shadow-xs"
+                      : "border-slate-300 text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  }`}
+                  title="View your private files and posts"
+                >
+                  <Lock className={`h-4 w-4 ${isPrivateTab ? "text-white" : "text-amber-500"}`} />
+                  <span>Private</span>
+                  {privatePosts.length > 0 && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                        isPrivateTab
+                          ? "bg-white text-amber-900"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                      }`}
+                    >
+                      {privatePosts.length}
+                    </span>
+                  )}
+                </Link>
+
                 {/* Saved Posts Icon / Shortcut */}
                 <Link
                   href={`/@${profile.username}?tab=saved`}
@@ -337,9 +375,13 @@ export default async function PortfolioPage({
                   <Bookmark className="h-4 w-4" />
                   <span>Saved</span>
                   {savedPosts.length > 0 && (
-                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                      isSavedTab ? "bg-white text-emerald-800" : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                    }`}>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                        isSavedTab
+                          ? "bg-white text-emerald-800"
+                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                      }`}
+                    >
                       {savedPosts.length}
                     </span>
                   )}
@@ -370,19 +412,33 @@ export default async function PortfolioPage({
         </div>
       </div>
 
-      {/* Tabs navigation for published vs saved */}
-      <div className="mt-8 flex items-center gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+      {/* Tabs navigation for published vs private vs saved */}
+      <div className="mt-8 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
         <Link
           href={`/@${profile.username}`}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-            !isSavedTab
+            !isSavedTab && !isPrivateTab
               ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs"
               : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
           }`}
         >
           <LayoutGrid className="h-4 w-4" />
-          <span>Published ({posts.length})</span>
+          <span>Published ({publicPosts.length})</span>
         </Link>
+
+        {isSelf && (
+          <Link
+            href={`/@${profile.username}?tab=private`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              isPrivateTab
+                ? "bg-amber-600 text-white shadow-2xs dark:bg-amber-500"
+                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <Lock className={`h-4 w-4 ${isPrivateTab ? "text-white" : "text-amber-500"}`} />
+            <span>Private Files &amp; Posts ({privatePosts.length})</span>
+          </Link>
+        )}
 
         {isSelf && (
           <Link
@@ -403,28 +459,54 @@ export default async function PortfolioPage({
       <div className="mt-4">
         {displayedPosts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {isSavedTab
-                ? "You haven't saved any posts yet. Click the bookmark icon on any post in Explore to save it here."
-                : isSelf
-                  ? "Nothing shared yet — your first post becomes portfolio evidence."
-                  : "This learner hasn't shared publicly yet."}
-            </p>
-            {isSelf && !isSavedTab && (
-              <Link
-                href="/upload"
-                className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-              >
-                Share what you learned
-              </Link>
-            )}
-            {isSavedTab && (
-              <Link
-                href="/explore"
-                className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-              >
-                Explore Posts to Save
-              </Link>
+            {isPrivateTab ? (
+              <div className="py-2">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
+                  <Lock className="h-6 w-6" />
+                </div>
+                <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-white">
+                  No private files or posts yet
+                </h3>
+                <p className="mx-auto mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400">
+                  When sharing what you learned (documents, images, audio, video, or notes), select{" "}
+                  <strong>Private — only me</strong> to keep your drafts, study files, and notes completely private to you.
+                </p>
+                <Link
+                  href="/upload"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span>Upload a private file / post</span>
+                </Link>
+              </div>
+            ) : isSavedTab ? (
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  You haven&apos;t saved any posts yet. Click the bookmark icon on any post in Explore to save it here.
+                </p>
+                <Link
+                  href="/explore"
+                  className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                >
+                  Explore Posts to Save
+                </Link>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {isSelf
+                    ? "Nothing shared publicly yet — your first post becomes portfolio evidence."
+                    : "This learner hasn't shared publicly yet."}
+                </p>
+                {isSelf && (
+                  <Link
+                    href="/upload"
+                    className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Share what you learned
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         ) : (

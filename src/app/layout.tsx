@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
+import NavbarWrapper from "@/components/navbar-wrapper";
 import Footer from "@/components/footer";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -43,7 +44,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        <Navbar />
+        <NavbarWrapper>
+          <Navbar />
+        </NavbarWrapper>
         <main className="flex-1">{children}</main>
         <Footer />
         <Analytics />

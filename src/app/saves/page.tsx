@@ -23,7 +23,7 @@ export default async function SavesPage() {
     const { data, error } = await supabase
       .from("saves")
       .select(
-        "created_at, posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url))"
+        "created_at, posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug)))"
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });

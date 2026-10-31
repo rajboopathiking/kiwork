@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PostCard, { type PostCardData } from "@/components/post-card";
-import { Inbox, Lightbulb, PlusCircle } from "lucide-react";
+import { Inbox, Lightbulb, PlusCircle, Tag } from "lucide-react";
 
 const FORMATS = [
   { value: "all", label: "All Formats" },
@@ -15,11 +15,12 @@ const FORMATS = [
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ format?: string }>;
+  searchParams: Promise<{ format?: string; topic?: string }>;
 }) {
-  const { format = "all" } = await searchParams;
+  const { format = "all", topic = "all" } = await searchParams;
 
   let posts: PostCardData[] | null = null;
+  let allTopics: { id: string; name: string; slug: string }[] = [];
   let dbError = false;
 
   try {
@@ -27,7 +28,7 @@ export default async function ExplorePage({
     let query = supabase
       .from("posts")
       .select(
-        "id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)"
+        "id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug))"
       )
       .eq("visibility", "public")
       .order("created_at", { ascending: false })
@@ -37,12 +38,25 @@ export default async function ExplorePage({
       query = query.eq("format", format);
     }
 
-    const { data, error } = await query;
-    if (error) {
-      console.error("Explore fetch error:", error);
-      dbError = true;
+    const [postsRes, topicsRes] = await Promise.allSettled([
+      query,
+      supabase.from("topics").select("id, name, slug").order("name"),
+    ]);
+
+    if (postsRes.status === "fulfilled" && !postsRes.value.error) {
+      const rawPosts = (postsRes.value.data as unknown as PostCardData[]) ?? [];
+      posts = topic === "all"
+        ? rawPosts
+        : rawPosts.filter((p) =>
+            Array.isArray(p.post_topics) &&
+            p.post_topics.some((pt) => pt?.topics?.slug === topic)
+          );
     } else {
-      posts = (data as unknown as PostCardData[]) ?? [];
+      dbError = true;
+    }
+
+    if (topicsRes.status === "fulfilled" && topicsRes.value.data) {
+      allTopics = topicsRes.value.data;
     }
   } catch {
     dbError = true;
@@ -69,14 +83,20 @@ export default async function ExplorePage({
         </Link>
       </div>
 
-      {/* Format chips with smooth horizontal swipe on mobile */}
+      {/* Format chips */}
       <div className="mt-6 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         {FORMATS.map(({ value, label }) => {
           const active = format === value;
+          const href =
+            value === "all"
+              ? topic !== "all"
+                ? `/explore?topic=${topic}`
+                : "/explore"
+              : `/explore?format=${value}${topic !== "all" ? `&topic=${topic}` : ""}`;
           return (
             <Link
               key={value}
-              href={value === "all" ? "/explore" : `/explore?format=${value}`}
+              href={href}
               className={
                 active
                   ? "shrink-0 rounded-full bg-slate-900 px-4 py-1.5 text-xs sm:text-sm font-medium text-white shadow-xs dark:bg-emerald-600"
@@ -88,6 +108,43 @@ export default async function ExplorePage({
           );
         })}
       </div>
+
+      {/* Category / Topic Chips */}
+      {allTopics.length > 0 && (
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            Category:
+          </span>
+          <Link
+            href={format !== "all" ? `/explore?format=${format}` : "/explore"}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition ${
+              topic === "all"
+                ? "bg-slate-900 text-white dark:bg-emerald-600 shadow-2xs"
+                : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+            }`}
+          >
+            All Categories
+          </Link>
+          {allTopics.map((t) => {
+            const active = topic === t.slug;
+            const href = `/explore?${format !== "all" ? `format=${format}&` : ""}topic=${t.slug}`;
+            return (
+              <Link
+                key={t.slug}
+                href={href}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition ${
+                  active
+                    ? "bg-emerald-600 text-white font-semibold shadow-2xs"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                }`}
+              >
+                <Tag className="h-3 w-3 opacity-60" />
+                <span>{t.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* States */}
       {dbError ? (

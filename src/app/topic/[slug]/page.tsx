@@ -53,7 +53,7 @@ export default async function TopicPage({
     const supabase = await createClient();
     const { data } = await supabase
       .from("post_topics")
-      .select("posts!post_topics_post_id_fkey(id, format, title, description, media_url_2, views, created_at, author_id, visibility, profiles!posts_author_id_fkey(username, avatar_url))")
+      .select("posts!post_topics_post_id_fkey(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug)))")
       .eq("topic_id", topic.id)
       .limit(60);
     posts = ((data ?? [])

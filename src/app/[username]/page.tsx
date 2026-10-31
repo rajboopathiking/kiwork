@@ -14,7 +14,7 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "@/components/brand-icons";
-import { Bookmark, ExternalLink, Globe, LayoutGrid, Lock, Pencil, PlusCircle } from "lucide-react";
+import { Bookmark, ExternalLink, Globe, LayoutGrid, Lock, Pencil, PlusCircle, Tag } from "lucide-react";
 
 interface CustomLink {
   key: string;
@@ -142,10 +142,10 @@ export default async function PortfolioPage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; category?: string }>;
 }) {
   const { username: raw } = await params;
-  const { tab = "posts" } = await searchParams;
+  const { tab = "posts", category = "all" } = await searchParams;
   const username = decodeURIComponent(raw).replace(/^@/, "");
   if (!username) notFound();
 
@@ -163,18 +163,18 @@ export default async function PortfolioPage({
   try {
     const supabase = await createClient();
     const results = await Promise.allSettled([
-      // For author viewing their own profile: fetch both public and private posts.
-      // For visitors: fetch only public posts.
+      // For author viewing their own profile: fetch both public and private posts with topics.
+      // For visitors: fetch only public posts with topics.
       isSelf
         ? supabase
             .from("posts")
-            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)")
+            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug))")
             .eq("author_id", profile.id)
             .order("created_at", { ascending: false })
             .limit(100)
         : supabase
             .from("posts")
-            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url)")
+            .select("id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug))")
             .eq("visibility", "public")
             .eq("author_id", profile.id)
             .order("created_at", { ascending: false })
@@ -205,7 +205,7 @@ export default async function PortfolioPage({
       isSelf
         ? supabase
             .from("saves")
-            .select("posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url))")
+            .select("posts(id, format, title, description, media_url_2, views, created_at, author_id, visibility, files, profiles!posts_author_id_fkey(username, avatar_url), post_topics(topics(id, name, slug)))")
             .eq("user_id", profile.id)
             .order("created_at", { ascending: false })
         : Promise.resolve(null),
@@ -256,7 +256,33 @@ export default async function PortfolioPage({
 
   const isSavedTab = tab === "saved" && isSelf;
   const isPrivateTab = tab === "private" && isSelf;
-  const displayedPosts = isSavedTab ? savedPosts : isPrivateTab ? privatePosts : publicPosts;
+  const currentTabPosts = isSavedTab ? savedPosts : isPrivateTab ? privatePosts : publicPosts;
+
+  // Extract all categories / topics present in the current tab's posts for organizing
+  const userCategoriesMap = new Map<string, { id: string; name: string; slug: string; count: number }>();
+  for (const p of currentTabPosts) {
+    if (Array.isArray(p.post_topics)) {
+      for (const pt of p.post_topics) {
+        if (pt?.topics) {
+          const t = pt.topics;
+          const curr = userCategoriesMap.get(t.slug);
+          if (curr) {
+            curr.count++;
+          } else {
+            userCategoriesMap.set(t.slug, { ...t, count: 1 });
+          }
+        }
+      }
+    }
+  }
+  const userCategories = Array.from(userCategoriesMap.values()).sort((a, b) => b.count - a.count);
+
+  const displayedPosts = category === "all"
+    ? currentTabPosts
+    : currentTabPosts.filter((p) =>
+        Array.isArray(p.post_topics) &&
+        p.post_topics.some((pt) => pt?.topics?.slug === category)
+      );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -457,9 +483,66 @@ export default async function PortfolioPage({
 
       {/* Posts Section */}
       <div className="mt-4">
+        {/* Category & Topic Filter Bar for Organizing */}
+        {userCategories.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              Categories:
+            </span>
+            <Link
+              href={`/@${profile.username}${tab !== "posts" ? `?tab=${tab}` : ""}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                category === "all"
+                  ? "bg-slate-900 text-white dark:bg-emerald-600 shadow-2xs"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              All Topics ({currentTabPosts.length})
+            </Link>
+            {userCategories.map((cat) => {
+              const active = category === cat.slug;
+              return (
+                <Link
+                  key={cat.slug}
+                  href={`/@${profile.username}?${tab !== "posts" ? `tab=${tab}&` : ""}category=${cat.slug}`}
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition ${
+                    active
+                      ? "bg-emerald-600 text-white font-semibold shadow-2xs"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  <Tag className="h-3 w-3 opacity-60" />
+                  <span>{cat.name}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                      active
+                        ? "bg-white/20 text-white font-bold"
+                        : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {cat.count}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {displayedPosts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900">
-            {isPrivateTab ? (
+            {category !== "all" ? (
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No posts tagged with this category in this tab.
+                </p>
+                <Link
+                  href={`/@${profile.username}${tab !== "posts" ? `?tab=${tab}` : ""}`}
+                  className="mt-4 inline-flex rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                >
+                  View all categories
+                </Link>
+              </div>
+            ) : isPrivateTab ? (
               <div className="py-2">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
                   <Lock className="h-6 w-6" />

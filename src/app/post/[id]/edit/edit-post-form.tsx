@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { parseVideoUrl } from "@/lib/media";
 import RichTextEditor from "@/app/upload/rich-text-editor";
 import { ColabIcon, GithubIcon } from "@/components/brand-icons";
+import CategoryManager, { type TopicItem } from "@/components/category-manager";
 import {
   ArrowLeft,
   BookOpen,
@@ -500,37 +501,15 @@ export default function EditPostForm({
             </div>
           </div>
 
-          {/* Topics */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-900 dark:text-slate-200">
-              Topics ({selectedTopics.length}/4)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {topics.map((t) => {
-                const on = selectedTopics.includes(t.id);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedTopics((prev) =>
-                        prev.includes(t.id) ? prev.filter((x) => x !== t.id) : prev.length < 4 ? [...prev, t.id] : prev
-                      )
-                    }
-                    className={
-                      "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition cursor-pointer " +
-                      (on
-                        ? "bg-emerald-600 text-white shadow-2xs"
-                        : "border border-slate-300 bg-white text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300")
-                    }
-                  >
-                    {on && <X className="h-3 w-3" />}
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* Categories & Topics */}
+          <CategoryManager
+            allTopics={topics}
+            selectedTopicIds={selectedTopics}
+            onChange={setSelectedTopics}
+            maxSelect={5}
+            label="Categories & Topics"
+            description="Organize your post with categories so learners and recruiters can discover it easily. Pick from existing categories or create a custom one."
+          />
 
           {/* Language & Visibility */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

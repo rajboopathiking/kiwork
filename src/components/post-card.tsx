@@ -8,6 +8,7 @@ import {
   Lock,
   MonitorPlay,
   Pencil,
+  Tag,
 } from "lucide-react";
 import { ColabIcon, GithubIcon } from "./brand-icons";
 
@@ -31,6 +32,7 @@ export interface PostCardData {
   visibility?: string;
   files?: unknown;
   profiles: { username: string; avatar_url: string | null } | null;
+  post_topics?: { topics: { id: string; name: string; slug: string } }[] | null;
 }
 
 export default function PostCard({
@@ -172,6 +174,30 @@ export default function PostCard({
             <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
               {post.description}
             </p>
+          )}
+
+          {/* Categories / Topics Badges */}
+          {Array.isArray(post.post_topics) && post.post_topics.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1">
+              {post.post_topics
+                .map((pt) => pt?.topics)
+                .filter(Boolean)
+                .slice(0, 3)
+                .map((t) => (
+                  <span
+                    key={t.id}
+                    className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  >
+                    <Tag className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400 opacity-80" />
+                    <span>{t.name}</span>
+                  </span>
+                ))}
+              {post.post_topics.length > 3 && (
+                <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                  +{post.post_topics.length - 3}
+                </span>
+              )}
+            </div>
           )}
 
           <div className="mt-3 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">

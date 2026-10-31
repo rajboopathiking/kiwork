@@ -24,6 +24,7 @@ import RichTextEditor from "./rich-text-editor";
 import { FORMAT_OPTIONS } from "@/lib/media";
 import { parseVideoUrl } from "@/lib/media";
 import { ColabIcon, GithubIcon } from "@/components/brand-icons";
+import CategoryManager, { type TopicItem } from "@/components/category-manager";
 import type { PostFormat } from "@/lib/types";
 
 interface Topic {
@@ -592,35 +593,12 @@ export default function UploadWizard({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">Topics</label>
-            <div className="flex flex-wrap gap-2">
-              {topics.map((t) => {
-                const on = selectedTopics.includes(t.id);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedTopics((prev) =>
-                        prev.includes(t.id) ? prev.filter((x) => x !== t.id) : prev.length < 4 ? [...prev, t.id] : prev
-                      )
-                    }
-                    className={
-                      "flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition " +
-                      (on
-                        ? "bg-emerald-600 text-white"
-                        : "border border-slate-300 bg-white text-slate-600 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300")
-                    }
-                  >
-                    {on && <X className="h-3 w-3" />}
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Pick up to 4 so the right learners find it.</p>
-          </div>
+          <CategoryManager
+            allTopics={topics}
+            selectedTopicIds={selectedTopics}
+            onChange={setSelectedTopics}
+            maxSelect={5}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>

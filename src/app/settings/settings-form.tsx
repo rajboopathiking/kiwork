@@ -409,6 +409,32 @@ export default function SettingsForm({ profile }: { profile: Profile }) {
             </button>
           </div>
 
+          {/* Quick preset suggestion chips */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-slate-400">Quick add:</span>
+            {[
+              { label: "Google Colab", key: "Google Colab" },
+              { label: "LeetCode", key: "LeetCode" },
+              { label: "Hugging Face", key: "Hugging Face" },
+              { label: "Kaggle", key: "Kaggle" },
+              { label: "Medium", key: "Medium" },
+            ].map((preset) => {
+              const alreadyAdded = customLinks.some((c) => c.key.toLowerCase() === preset.key.toLowerCase());
+              if (alreadyAdded) return null;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setCustomLinks((prev) => [...prev, { key: preset.key, url: "" }])}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>{preset.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           {customLinks.length > 0 && (
             <div className="mt-3 space-y-2.5">
               {customLinks.map((link, idx) => (

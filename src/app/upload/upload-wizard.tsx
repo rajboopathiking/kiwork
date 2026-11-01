@@ -60,6 +60,7 @@ export default function UploadWizard({
   const [showWriteup, setShowWriteup] = useState(true);
   const [showImages, setShowImages] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [showDevResources, setShowDevResources] = useState(false);
 
   // details inputs
   const [title, setTitle] = useState("");
@@ -84,7 +85,7 @@ export default function UploadWizard({
     });
   }, [supabase, router]);
 
-  function pickFormat(f: PostFormat) {
+  function pickFormat(f: PostFormat, isCode?: boolean) {
     setFormat(f);
     setFiles([]);
     setVideoUrl("");
@@ -92,6 +93,7 @@ export default function UploadWizard({
     setShowWriteup(f === "blog" || f === "video" || f === "image");
     setShowImages(f === "image" || f === "blog");
     setShowVideo(f === "video");
+    setShowDevResources(Boolean(isCode || f === "blog"));
     setError(null);
     setStep(2);
   }
@@ -114,12 +116,16 @@ export default function UploadWizard({
   }
 
   const videoRef = parseVideoUrl(videoUrl);
+  const hasDevResources = Boolean(
+    colabUrl.trim() || githubUrl.trim() || demoUrl.trim() || docsUrl.trim()
+  );
   const canContinue =
     step === 2 &&
     format != null &&
     (bodyHtml.trim().length > 10 ||
       files.length > 0 ||
       videoRef != null ||
+      hasDevResources ||
       (format === "audio" && files.length > 0) ||
       (format === "doc" && files.length > 0));
 
@@ -272,25 +278,28 @@ export default function UploadWizard({
       {/* STEP 1 — format */}
       {step === 1 && (
         <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {FORMAT_OPTIONS.map(({ format: f, label, desc }) => {
-            const Icon =
-              f === "video" ? MonitorPlay : f === "audio" ? Headphones : f === "image" ? ImageIcon : f === "doc" ? FileCheck2 : FileText;
-            return (
-              <button
-                key={f}
-                onClick={() => pickFormat(f)}
-                className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span>
-                  <span className="block font-semibold text-slate-900 dark:text-white">{label}</span>
-                  <span className="mt-0.5 block text-sm text-slate-500">{desc}</span>
-                </span>
-              </button>
-            );
-          })}
+          {[
+            { id: "blog", format: "blog" as PostFormat, label: "Blog & Article", desc: "Rich-text write-up of what you learned", icon: FileText, isCode: false },
+            { id: "code", format: "blog" as PostFormat, label: "Colab & GitHub Project", desc: "Share interactive Colab notebooks, GitHub code & live demos", icon: Terminal, isCode: true },
+            { id: "video", format: "video" as PostFormat, label: "Video", desc: "Paste a YouTube / Vimeo link — no heavy uploads", icon: MonitorPlay, isCode: false },
+            { id: "image", format: "image" as PostFormat, label: "Notes / Diagrams", desc: "Photos, screenshots, carousels & diagrams", icon: ImageIcon, isCode: false },
+            { id: "audio", format: "audio" as PostFormat, label: "Audio", desc: "Voice notes & recordings (mp3/ogg/m4a)", icon: Headphones, isCode: false },
+            { id: "doc", format: "doc" as PostFormat, label: "Doc (PDF/PPTX)", desc: "Slides & summaries for preview/download", icon: FileCheck2, isCode: false },
+          ].map(({ id, format: f, label, desc, icon: Icon, isCode }) => (
+            <button
+              key={id}
+              onClick={() => pickFormat(f, isCode)}
+              className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                <Icon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-semibold text-slate-900 dark:text-white">{label}</span>
+                <span className="mt-0.5 block text-sm text-slate-500">{desc}</span>
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
@@ -300,10 +309,10 @@ export default function UploadWizard({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-900 sm:text-lg dark:text-white">
-                Compose Content: {FORMAT_OPTIONS.find((o) => o.format === format)?.label}
+                Compose Content: {format === "blog" && showDevResources && !bodyHtml ? "Developer Hub (Colab · GitHub)" : FORMAT_OPTIONS.find((o) => o.format === format)?.label}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                You can freely combine video walkthroughs, diagram carousels, and rich text articles.
+                You can freely combine Google Colab, GitHub repos, video walkthroughs, diagram carousels, and rich text articles.
               </p>
             </div>
             <button
@@ -322,8 +331,21 @@ export default function UploadWizard({
               </span>
               <button
                 type="button"
+                onClick={() => setShowDevResources((prev) => !prev)}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  showDevResources
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                }`}
+              >
+                <Terminal className="h-3.5 w-3.5" />
+                <span>Colab &amp; GitHub {hasDevResources ? "✓" : ""}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowVideo((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                   showVideo
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
@@ -336,7 +358,7 @@ export default function UploadWizard({
               <button
                 type="button"
                 onClick={() => setShowImages((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                   showImages
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
@@ -349,7 +371,7 @@ export default function UploadWizard({
               <button
                 type="button"
                 onClick={() => setShowWriteup((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
                   showWriteup
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "border border-slate-200 bg-white text-slate-700 hover:border-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
@@ -547,6 +569,100 @@ export default function UploadWizard({
                 )}
               </div>
               <RichTextEditor onChange={setBodyHtml} />
+            </div>
+          )}
+
+          {/* 4. Developer & Learning Resources Block in Step 2 */}
+          {showDevResources && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+                    <Terminal className="h-3.5 w-3.5" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                      Developer Hub: Colab, GitHub &amp; Live Demos
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Attach interactive Google Colab notebooks, GitHub code, or live demos
+                    </p>
+                  </div>
+                </div>
+                {format !== "blog" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDevResources(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    Hide
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {/* Google Colab */}
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <ColabIcon className="h-4 w-4" />
+                    Google Colab Notebook URL
+                  </label>
+                  <input
+                    type="url"
+                    value={colabUrl}
+                    onChange={(e) => setColabUrl(e.target.value)}
+                    placeholder="https://colab.research.google.com/drive/..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                {/* GitHub Repo */}
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <GithubIcon className="h-4 w-4 text-slate-900 dark:text-white" />
+                    GitHub Repository URL
+                  </label>
+                  <input
+                    type="url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/username/repository"
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {/* Live Demo */}
+                  <div>
+                    <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      Live Demo / App URL
+                    </label>
+                    <input
+                      type="url"
+                      value={demoUrl}
+                      onChange={(e) => setDemoUrl(e.target.value)}
+                      placeholder="https://my-app.vercel.app"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+
+                  {/* Docs / Paper */}
+                  <div>
+                    <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <BookOpen className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                      Docs / Paper URL
+                    </label>
+                    <input
+                      type="url"
+                      value={docsUrl}
+                      onChange={(e) => setDocsUrl(e.target.value)}
+                      placeholder="https://arxiv.org/abs/... or docs"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 import { parseVideoUrl } from "@/lib/media";
@@ -81,7 +82,7 @@ function parsePostFiles(raw: unknown): { images: string[]; devResources: Develop
   return { images: [], devResources: {} };
 }
 
-async function fetchPost(id: string): Promise<PostFull | null> {
+const fetchPost = cache(async (id: string): Promise<PostFull | null> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -96,7 +97,7 @@ async function fetchPost(id: string): Promise<PostFull | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function generateMetadata({
   params,
@@ -146,17 +147,10 @@ export default async function PostPage({
 
   if (!post) notFound();
 
-  try {
-    const supabase = await createClient();
-    // count the view (function from supabase/phase2.sql)
-    try {
-      await supabase.rpc("increment_views", { p_post_id: id });
-    } catch {
-      // function not run yet — views stay 0, page still works
-    }
-  } catch {
-    // env not configured — ignore
-  }
+  // non-blocking background view increment
+  createClient()
+    .then((sb) => sb.rpc("increment_views", { p_post_id: id }))
+    .catch(() => {});
 
   const meta = FORMAT_META[post.format] ?? FORMAT_META.blog;
   const Icon = meta.icon;

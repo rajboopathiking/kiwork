@@ -94,7 +94,7 @@ export default function PostCard({
         </div>
       )}
 
-      <Link href={`/post/${post.id}`} className="block">
+      <Link href={`/post/${post.id}`} prefetch={true} className="block">
         <div className="relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br from-emerald-50 to-slate-50 dark:from-slate-800 dark:to-slate-800/40">
           {post.media_url_2 ? (
             // eslint-disable-next-line @next/next/no-img-element

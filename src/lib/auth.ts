@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export interface Profile {
@@ -29,8 +30,11 @@ export interface PostCardData {
   profiles: Pick<Profile, "username" | "avatar_url"> | null;
 }
 
-/** Returns the logged-in user + profile, or nulls when unauthenticated (or env not wired yet). */
-export async function getCurrentUser() {
+/** Returns the logged-in user + profile, or nulls when unauthenticated (or env not wired yet).
+ * Wrapped in React cache() so multiple components (Layout, Navbar, Page) in the same render request
+ * only execute the Supabase auth & profile roundtrip once.
+ */
+export const getCurrentUser = cache(async () => {
   try {
     const supabase = await createClient();
     const {
@@ -48,4 +52,4 @@ export async function getCurrentUser() {
   } catch {
     return { user: null, profile: null };
   }
-}
+});

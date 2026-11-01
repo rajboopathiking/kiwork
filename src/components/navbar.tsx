@@ -10,7 +10,7 @@ export default async function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-5">
-        <Link href="/" className="flex shrink-0 items-center gap-2 font-bold text-slate-900 dark:text-white">
+        <Link href="/" prefetch={true} className="flex shrink-0 items-center gap-2 font-bold text-slate-900 dark:text-white">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-white">
             <Lightbulb className="h-4 w-4" />
           </span>
@@ -21,6 +21,7 @@ export default async function Navbar() {
 
         <Link
           href="/explore"
+          prefetch={true}
           className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-emerald-700 dark:text-slate-300 dark:hover:text-emerald-400"
         >
           <BookOpen className="h-4 w-4" />
@@ -54,6 +55,7 @@ export default async function Navbar() {
             <>
               <Link
                 href="/saves"
+                prefetch={true}
                 className="hidden text-slate-500 hover:text-amber-600 sm:block dark:text-slate-400"
                 title="Saved posts"
               >
@@ -61,6 +63,7 @@ export default async function Navbar() {
               </Link>
               <Link
                 href="/upload"
+                prefetch={true}
                 className="hidden items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:flex"
               >
                 <PlusCircle className="h-4 w-4" />
